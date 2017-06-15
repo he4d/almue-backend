@@ -1,0 +1,8 @@
+#ignore the debug file
+debug
+
+#ignore the database
+almue.db
+
+#ignore vscode
+.vscode/
