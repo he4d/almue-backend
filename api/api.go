@@ -36,7 +36,7 @@ func (a *API) initialize() {
 	a.router = mux.NewRouter()
 
 	// Serve static files
-	fs := http.FileServer(http.Dir("frontend"))
+	fs := http.FileServer(http.Dir("frontend/static"))
 	a.router.Handle("/", fs)
 
 	// Serve the api functions
