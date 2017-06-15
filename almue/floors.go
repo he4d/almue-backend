@@ -1,4 +1,4 @@
-package api
+package almue
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (a *API) getAllFloors(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) getAllFloors(w http.ResponseWriter, r *http.Request) {
 	floors, err := a.store.GetFloorList()
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, err.Error())
@@ -16,11 +16,11 @@ func (a *API) getAllFloors(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusAccepted, floors)
 }
 
-func (a *API) createFloor(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) getFloor(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	i, err := strconv.ParseInt(vars["floorID"], 10, 64)
 	if err != nil {
@@ -40,10 +40,10 @@ func (a *API) getFloor(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, floor)
 }
 
-func (a *API) updateFloor(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) deleteFloor(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }

@@ -1,25 +1,25 @@
-package api
+package almue
 
 import (
 	"net/http"
 )
 
-func (a *API) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) getShutter(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) createShutter(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) updateShutter(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }
 
-func (a *API) deleteShutter(w http.ResponseWriter, r *http.Request) {
+func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, http.StatusInternalServerError, "Not implemented")
 }

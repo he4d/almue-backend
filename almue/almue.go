@@ -1,38 +1,64 @@
-package api
+package almue
 
 import (
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
 )
 
-// API holds all the fields for the complete API Context
-type API struct {
-	router *mux.Router
-	store  store.Store
+// Almue holds all the fields for the complete Application Context
+type Almue struct {
+	router           *mux.Router
+	store            store.Store
+	deviceController rpi.DeviceController
 }
 
 // Initialize sets up the complete api
-func (a *API) Initialize(dbPath string) {
+func (a *Almue) Initialize(dbPath string, apiOnly bool) {
 	a.initialize()
 	a.initializeDatabase(dbPath)
+	if !apiOnly {
+		a.initializeDeviceController()
+	}
 }
 
 // Run must be called to start the api
-func (a *API) Run(addr string) {
+func (a *Almue) Run(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.router))
 }
 
-func (a *API) initializeDatabase(dbPath string) {
+func (a *Almue) initializeDatabase(dbPath string) {
 	a.store = store.New(dbPath)
 }
 
-func (a *API) initializeStaticContent() {
+func (a *Almue) initializeDeviceController() {
+	a.deviceController = rpi.New()
+	allLightings, err := a.store.GetAllLightings()
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("initializeDeviceController failed")
+	}
+	if err := a.deviceController.RegisterLightings(allLightings...); err != nil {
+		log.Println(err)
+		log.Fatalln("could not register lightings")
+	}
+
+	allShutters, err := a.store.GetAllShutters()
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("initializeDeviceController failed")
+	}
+
+	if err := a.deviceController.RegisterShutters(allShutters...); err != nil {
+		log.Println(err)
+		log.Fatalln("could not register shutters")
+	}
 }
 
-func (a *API) initialize() {
+func (a *Almue) initialize() {
 	a.router = mux.NewRouter()
 
 	// Serve static files

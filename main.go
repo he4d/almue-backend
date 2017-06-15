@@ -1,12 +1,19 @@
 package main
 
 import (
-	"github.com/he4d/almue/api"
+	"os"
+
+	"github.com/he4d/almue/almue"
+	_ "github.com/kidoman/embd/host/rpi"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	api := api.API{}
-	api.Initialize("./almue.db")
-	api.Run(":8000")
+	apiOnly := false
+	if len(os.Args) == 2 && os.Args[1] == "--api-only" {
+		apiOnly = true
+	}
+	almue := almue.Almue{}
+	almue.Initialize("./almue.db", apiOnly)
+	almue.Run(":8000")
 }
