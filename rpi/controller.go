@@ -75,11 +75,12 @@ func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) error {
 			openPin = gpioreg.ByNumber(shutterModel.OpenPin)
 			closePin = gpioreg.ByNumber(shutterModel.ClosePin)
 		}
+		duration := time.Duration(shutterModel.CompleteWayInSeconds) * time.Second
 		d.shutters[shutterModel.ID] = &shutter{
-			ID:                   shutterModel.ID,
-			openPin:              openPin,
-			closePin:             closePin,
-			completeWayInSeconds: shutterModel.CompleteWayInSeconds,
+			ID:                  shutterModel.ID,
+			openPin:             openPin,
+			closePin:            closePin,
+			completeWayDuration: duration,
 		}
 		if shutterModel.TimerEnabled {
 			if err := d.ScheduleShutterJobs(shutterModel); err != nil {
@@ -135,7 +136,6 @@ func (d *deviceController) OpenShutter(shutterID int64) error {
 	}
 	if device.timer != nil {
 		device.timer.Stop()
-		device.timer = nil
 	}
 	if err := device.closePin.Out(gpio.Low); err != nil {
 		return err
@@ -143,19 +143,16 @@ func (d *deviceController) OpenShutter(shutterID int64) error {
 	if err := device.openPin.Out(gpio.High); err != nil {
 		return err
 	}
-	device.timer = time.NewTimer(time.Second * time.Duration(device.completeWayInSeconds))
 	//TODO: handle error..
-	go func() error {
-		<-device.timer.C
+	device.timer = time.AfterFunc(device.completeWayDuration, func() {
 		if err := device.closePin.Out(gpio.Low); err != nil {
-			return err
+			// return err
 		}
 		if err := device.openPin.Out(gpio.Low); err != nil {
-			return err
+			// return err
 		}
-		device.timer = nil
-		return nil
-	}()
+		// return nil
+	})
 
 	return nil
 }
@@ -167,7 +164,6 @@ func (d *deviceController) CloseShutter(shutterID int64) error {
 	}
 	if device.timer != nil {
 		device.timer.Stop()
-		device.timer = nil
 	}
 	if err := device.openPin.Out(gpio.Low); err != nil {
 		return err
@@ -175,18 +171,16 @@ func (d *deviceController) CloseShutter(shutterID int64) error {
 	if err := device.closePin.Out(gpio.High); err != nil {
 		return err
 	}
-	device.timer = time.NewTimer(time.Second * time.Duration(device.completeWayInSeconds))
 	//TODO: handle error
-	go func() error {
-		<-device.timer.C
+	device.timer = time.AfterFunc(device.completeWayDuration, func() {
 		if err := device.closePin.Out(gpio.Low); err != nil {
-			return err
+			// return err
 		}
 		if err := device.openPin.Out(gpio.Low); err != nil {
-			return err
+			// return err
 		}
-		return nil
-	}()
+		// return nil
+	})
 	return nil
 }
 
@@ -197,7 +191,6 @@ func (d *deviceController) StopShutter(shutterID int64) error {
 	}
 	if device.timer != nil {
 		device.timer.Stop()
-		device.timer = nil
 	}
 	if err := device.openPin.Out(gpio.Low); err != nil {
 		return err
@@ -237,16 +230,12 @@ func (d *deviceController) ScheduleShutterJobs(shutter *model.Shutter) error {
 	}
 	device.openJob, err = scheduler.Every().Day().NotImmediately().At(fmt.Sprintf("%02d:%02d", shutter.OpenTime.Hour(), shutter.OpenTime.Minute())).Run(func() {
 		d.OpenShutter(device.ID)
-		time.Sleep(time.Second * time.Duration(shutter.CompleteWayInSeconds))
-		d.StopShutter(device.ID)
 	})
 	if err != nil {
 		return err
 	}
 	device.closeJob, err = scheduler.Every().Day().NotImmediately().At(fmt.Sprintf("%02d:%02d", shutter.CloseTime.Hour(), shutter.CloseTime.Minute())).Run(func() {
 		d.CloseShutter(device.ID)
-		time.Sleep(time.Second * time.Duration(shutter.CompleteWayInSeconds))
-		d.StopShutter(device.ID)
 	})
 	if err != nil {
 		return err
@@ -261,11 +250,9 @@ func (d *deviceController) UnscheduleShutterJobs(shutterID int64) error {
 	}
 	if device.openJob != nil {
 		device.openJob.Quit <- true
-		device.openJob = nil
 	}
 	if device.closeJob != nil {
 		device.closeJob.Quit <- true
-		device.closeJob = nil
 	}
 	return nil
 }
@@ -297,11 +284,9 @@ func (d *deviceController) UnscheduleLightingJobs(lightingID int64) error {
 	}
 	if device.onJob != nil {
 		device.onJob.Quit <- true
-		device.onJob = nil
 	}
 	if device.offJob != nil {
 		device.offJob.Quit <- true
-		device.offJob = nil
 	}
 	return nil
 }

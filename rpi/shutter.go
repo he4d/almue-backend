@@ -8,11 +8,11 @@ import (
 )
 
 type shutter struct {
-	ID                   int64
-	openPin              gpio.PinIO
-	closePin             gpio.PinIO
-	openJob              *scheduler.Job
-	closeJob             *scheduler.Job
-	completeWayInSeconds int
-	timer                *time.Timer
+	ID                  int64
+	openPin             gpio.PinIO
+	closePin            gpio.PinIO
+	openJob             *scheduler.Job
+	closeJob            *scheduler.Job
+	completeWayDuration time.Duration
+	timer               *time.Timer
 }
