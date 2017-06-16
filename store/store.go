@@ -9,39 +9,39 @@ import (
 
 // Store must be implemented by all data stores
 type Store interface {
-	GetFloor(int64) (*model.Floor, error)
+	GetFloor(floorID int64) (*model.Floor, error)
 
 	GetFloorList() ([]*model.Floor, error)
 
-	CreateFloor(*model.Floor) error
+	CreateFloor(*model.Floor) (int64, error)
 
 	UpdateFloor(*model.Floor) error
 
-	DeleteFloor(*model.Floor) error
+	DeleteFloor(floorID int64) error
 
-	GetShutterByFloor(int64, int64) (*model.Shutter, error)
+	GetShutterByFloor(shutterID int64, floorID int64) (*model.Shutter, error)
 
 	GetShutterListOfFloor(int64) ([]*model.Shutter, error)
 
 	GetAllShutters() ([]*model.Shutter, error)
 
-	CreateShutter(*model.Shutter) error
+	CreateShutter(*model.Shutter) (int64, error)
 
 	UpdateShutter(*model.Shutter) error
 
-	DeleteShutter(*model.Shutter) error
+	DeleteShutter(shutterID int64) error
 
-	GetLightingByFloor(int64, int64) (*model.Lighting, error)
+	GetLightingByFloor(lightingID int64, floorID int64) (*model.Lighting, error)
 
-	GetLightingListOfFloor(int64) ([]*model.Lighting, error)
+	GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error)
 
 	GetAllLightings() ([]*model.Lighting, error)
 
-	CreateLighting(*model.Lighting) error
+	CreateLighting(*model.Lighting) (int64, error)
 
 	UpdateLighting(*model.Lighting) error
 
-	DeleteLighting(*model.Lighting) error
+	DeleteLighting(int64) error
 }
 
 type datastore struct {

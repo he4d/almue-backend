@@ -1,47 +1,120 @@
 package store
 
 import (
-	"errors"
-
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetLightingByFloor(floorID, lightingID int64) (*model.Lighting, error) {
-	return nil, errors.New("not implemented")
+func (d *datastore) GetLightingByFloor(lightingID, floorID int64) (*model.Lighting, error) {
+	l := new(model.Lighting)
+
+	err := d.QueryRow(lightingByIDStmt, lightingID, floorID).Scan(
+		&l.ID, &l.Created, &l.Modified, &l.Description,
+		&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+		&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
+		&l.FloorID)
+
+	if err != nil {
+		return nil, err
+	}
+	return l, err
 }
 
 func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error) {
-	return nil, errors.New("not implemented")
+	rows, err := d.Query(lightingsOfFloorStmt, floorID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	lightings := []*model.Lighting{}
+
+	for rows.Next() {
+		l := new(model.Lighting)
+		if err := rows.Scan(
+			&l.ID, &l.Created, &l.Modified, &l.Description,
+			&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+			&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
+			&l.FloorID); err != nil {
+			return nil, err
+		}
+		lightings = append(lightings, l)
+	}
+
+	return lightings, err
 }
 
 func (d *datastore) GetAllLightings() ([]*model.Lighting, error) {
-	return nil, errors.New("not implemented")
+	rows, err := d.Query(lightingsFindAllStmt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	lightings := []*model.Lighting{}
+
+	for rows.Next() {
+		l := new(model.Lighting)
+		if err := rows.Scan(
+			&l.ID, &l.Created, &l.Modified, &l.Description,
+			&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+			&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
+			&l.FloorID); err != nil {
+			return nil, err
+		}
+		lightings = append(lightings, l)
+	}
+
+	return lightings, err
 }
 
-func (d *datastore) CreateLighting(*model.Lighting) error {
-	return errors.New("not implemented")
+func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
+	res, err := d.Exec(
+		lightingCreateStmt,
+		l.Description, l.SwitchPin, l.TimerEnabled,
+		l.OnTime, l.OffTime, l.EmergencyEnabled,
+		l.DeviceStatus, l.Disabled, l.FloorID)
+
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, err
 }
 
-func (d *datastore) DeleteLighting(*model.Lighting) error {
-	return errors.New("not implemented")
+func (d *datastore) DeleteLighting(lightingID int64) error {
+	_, err := d.Exec(lightingDeleteStmt, lightingID)
+	return err
 }
 
-func (d *datastore) UpdateLighting(*model.Lighting) error {
-	return errors.New("not implemented")
+func (d *datastore) UpdateLighting(l *model.Lighting) error {
+	_, err :=
+		d.Exec(
+			lightingUpdateStmt,
+			l.Description, l.SwitchPin,
+			l.TimerEnabled, l.OnTime, l.OffTime, l.EmergencyEnabled,
+			l.DeviceStatus, l.Disabled, l.ID)
+	return err
 }
 
-var lightingByID = `
+var lightingByIDStmt = `
 SELECT * FROM lightings WHERE id = ? AND floor_id = ?
 `
-var lightingsOfFloor = `
+var lightingsOfFloorStmt = `
 SELECT * FROM lightings WHERE floor_id = ?
 `
 
-var lightingsFindAll = `
+var lightingsFindAllStmt = `
 SELECT * FROM lightings
 `
 
-var lightingCreate = `
+var lightingCreateStmt = `
 INSERT INTO lightings(
 description,
 switch_pin,
@@ -56,7 +129,7 @@ floor_id
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
-var lightingUpdate = `
+var lightingUpdateStmt = `
 UPDATE lightings SET 
 description = ?,
 switch_pin = ?,
@@ -69,6 +142,6 @@ disabled = ?
 WHERE id = ?
 `
 
-var lightingDelete = `
+var lightingDeleteStmt = `
 DELETE FROM lightings WHERE id = ?
 `

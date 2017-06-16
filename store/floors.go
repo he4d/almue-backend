@@ -1,24 +1,22 @@
 package store
 
 import (
-	"errors"
-
 	"github.com/he4d/almue/model"
 )
 
 func (d *datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	floor := &model.Floor{}
 	//TODO: Add Shutters and Lightings
-	err := d.QueryRow(floorFindID,
+	err := d.QueryRow(floorFindIDStmt,
 		floorID).Scan(&floor.ID, &floor.Created, &floor.Modified, &floor.Description)
 	if err != nil {
 		return nil, err
 	}
-	return floor, nil
+	return floor, err
 }
 
 func (d *datastore) GetFloorList() ([]*model.Floor, error) {
-	rows, err := d.Query(floorsFindAll)
+	rows, err := d.Query(floorsFindAllStmt)
 
 	if err != nil {
 		return nil, err
@@ -35,37 +33,50 @@ func (d *datastore) GetFloorList() ([]*model.Floor, error) {
 		}
 		floors = append(floors, &f)
 	}
-	return floors, nil
+	return floors, err
 }
 
-func (d *datastore) CreateFloor(*model.Floor) error {
-	return errors.New("not implemented")
+func (d *datastore) CreateFloor(f *model.Floor) (int64, error) {
+	res, err := d.Exec(
+		floorCreateStmt,
+		f.Description)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, err
 }
 
-func (d *datastore) DeleteFloor(*model.Floor) error {
-	return errors.New("not implemented")
+func (d *datastore) DeleteFloor(floorID int64) error {
+	_, err := d.Exec(floorDeleteStmt, floorID)
+	return err
 }
 
-func (d *datastore) UpdateFloor(*model.Floor) error {
-	return errors.New("not implemented")
+func (d *datastore) UpdateFloor(f *model.Floor) error {
+	_, err :=
+		d.Exec(floorUpdateStmt, f.Description, f.ID)
+	return err
 }
 
-var floorFindID = `
+var floorFindIDStmt = `
 SELECT * FROM floors WHERE id = ?
 `
 
-var floorsFindAll = `
+var floorsFindAllStmt = `
 SELECT * FROM floors
 `
 
-var floorCreate = `
+var floorCreateStmt = `
 INSERT INTO floors(description) VALUES(?)
 `
 
-var floorUpdate = `
+var floorUpdateStmt = `
 UPDATE floors SET description = ? WHERE id = ?
 `
 
-var floorDelete = `
+var floorDeleteStmt = `
 DELETE FROM floors WHERE id = ?
 `

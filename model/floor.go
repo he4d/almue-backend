@@ -1,16 +1,9 @@
 package model
 
-import "errors"
-
-//Floor represents a floor in the home
+//Floor represents the database object of a floor
 type Floor struct {
-	ModelBase
-	Description string     `json:"description"`
-	Shutters    []Shutter  `json:"shutters"`
-	Lightings   []Lighting `json:"lightings"`
-}
-
-//Validate validates the given floor
-func (f Floor) Validate() error {
-	return errors.New("not implemented")
+	Base
+	Description string      `json:"description" valid:"alphanum,required"`
+	Shutters    []*Shutter  `json:"shutters" valid:"-"`
+	Lightings   []*Lighting `json:"lightings" valid:"-"`
 }

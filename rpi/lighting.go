@@ -1,10 +1,11 @@
 package rpi
 
-import (
-	"github.com/kidoman/embd"
-)
+import "periph.io/x/periph/conn/gpio"
+import "github.com/carlescere/scheduler"
 
 type lighting struct {
-	deviceID  int64
-	switchPin *embd.DigitalPin
+	ID        int64
+	switchPin gpio.PinIO
+	onJob     *scheduler.Job
+	offJob    *scheduler.Job
 }

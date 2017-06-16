@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
 	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
@@ -17,12 +18,15 @@ type Almue struct {
 }
 
 // Initialize sets up the complete api
-func (a *Almue) Initialize(dbPath string, apiOnly bool) {
-	a.initialize()
+func (a *Almue) Initialize(dbPath string, simulate bool) {
+	govalidator.SetFieldsRequiredByDefault(true)
+	govalidator.CustomTypeTagMap.Set("gpio", govalidator.CustomTypeValidator(func(i interface{}, o interface{}) bool {
+		asInt := i.(int)
+		return asInt >= 1 && asInt <= 40
+	}))
+	a.initializeServer()
 	a.initializeDatabase(dbPath)
-	if !apiOnly {
-		a.initializeDeviceController()
-	}
+	a.initializeDeviceController(simulate)
 }
 
 // Run must be called to start the api
@@ -34,8 +38,8 @@ func (a *Almue) initializeDatabase(dbPath string) {
 	a.store = store.New(dbPath)
 }
 
-func (a *Almue) initializeDeviceController() {
-	a.deviceController = rpi.New()
+func (a *Almue) initializeDeviceController(simulate bool) {
+	a.deviceController = rpi.New(simulate)
 	allLightings, err := a.store.GetAllLightings()
 	if err != nil {
 		log.Println(err)
@@ -58,7 +62,7 @@ func (a *Almue) initializeDeviceController() {
 	}
 }
 
-func (a *Almue) initialize() {
+func (a *Almue) initializeServer() {
 	a.router = mux.NewRouter()
 
 	// Serve static files
@@ -81,4 +85,7 @@ func (a *Almue) initialize() {
 	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.getLighting).Methods("GET")
 	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.updateLighting).Methods("PUT")
 	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.deleteLighting).Methods("DELETE")
+
+	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{shutterID:[0-9]+}/{action:[a-z]+}", a.controlShutter).Methods("POST")
+	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{lighting:[0-9]+}/{action:[a-z]+}", a.controlLighting).Methods("POST")
 }

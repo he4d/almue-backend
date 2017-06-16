@@ -1,9 +1,14 @@
 package rpi
 
-import "github.com/kidoman/embd"
+import (
+	"github.com/carlescere/scheduler"
+	"periph.io/x/periph/conn/gpio"
+)
 
 type shutter struct {
-	deviceID int64
-	openPin  *embd.DigitalPin
-	closePin *embd.DigitalPin
+	ID       int64
+	openPin  gpio.PinIO
+	closePin gpio.PinIO
+	openJob  *scheduler.Job
+	closeJob *scheduler.Job
 }
