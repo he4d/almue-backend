@@ -1,4 +1,7 @@
 Almue - A homeautomation solution for the raspberry pi
 ============================================================
 
-work in progress....
+Work in progress..
+
+For cross-compilation on a linux amd64 host install the package gcc-6-arm-linux-gnueabihf
+and run the cross-compile.sh script (set the GOARM variable depending on your raspberry pi version)
