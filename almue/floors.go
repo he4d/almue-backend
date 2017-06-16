@@ -60,6 +60,12 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 	}
 
+	emptyShutters := make([]*model.Shutter, 0)
+	floor.Shutters = emptyShutters
+
+	emptyLightings := make([]*model.Lighting, 0)
+	floor.Lightings = emptyLightings
+
 	respondWithJSON(w, http.StatusCreated, floor)
 }
 

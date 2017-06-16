@@ -6,3 +6,5 @@ almue.db
 
 #ignore vscode
 .vscode/
+
+bin/

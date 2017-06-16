@@ -76,9 +76,10 @@ func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) error {
 			closePin = gpioreg.ByNumber(shutterModel.ClosePin)
 		}
 		d.shutters[shutterModel.ID] = &shutter{
-			ID:       shutterModel.ID,
-			openPin:  openPin,
-			closePin: closePin,
+			ID:                   shutterModel.ID,
+			openPin:              openPin,
+			closePin:             closePin,
+			completeWayInSeconds: shutterModel.CompleteWayInSeconds,
 		}
 		if shutterModel.TimerEnabled {
 			if err := d.ScheduleShutterJobs(shutterModel); err != nil {
@@ -132,12 +133,30 @@ func (d *deviceController) OpenShutter(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	if device.timer != nil {
+		device.timer.Stop()
+		device.timer = nil
+	}
 	if err := device.closePin.Out(gpio.Low); err != nil {
 		return err
 	}
 	if err := device.openPin.Out(gpio.High); err != nil {
 		return err
 	}
+	device.timer = time.NewTimer(time.Second * time.Duration(device.completeWayInSeconds))
+	//TODO: handle error..
+	go func() error {
+		<-device.timer.C
+		if err := device.closePin.Out(gpio.Low); err != nil {
+			return err
+		}
+		if err := device.openPin.Out(gpio.Low); err != nil {
+			return err
+		}
+		device.timer = nil
+		return nil
+	}()
+
 	return nil
 }
 
@@ -146,12 +165,28 @@ func (d *deviceController) CloseShutter(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	if device.timer != nil {
+		device.timer.Stop()
+		device.timer = nil
+	}
 	if err := device.openPin.Out(gpio.Low); err != nil {
 		return err
 	}
 	if err := device.closePin.Out(gpio.High); err != nil {
 		return err
 	}
+	device.timer = time.NewTimer(time.Second * time.Duration(device.completeWayInSeconds))
+	//TODO: handle error
+	go func() error {
+		<-device.timer.C
+		if err := device.closePin.Out(gpio.Low); err != nil {
+			return err
+		}
+		if err := device.openPin.Out(gpio.Low); err != nil {
+			return err
+		}
+		return nil
+	}()
 	return nil
 }
 
@@ -159,6 +194,10 @@ func (d *deviceController) StopShutter(shutterID int64) error {
 	device, err := d.getShutterByID(shutterID)
 	if err != nil {
 		return err
+	}
+	if device.timer != nil {
+		device.timer.Stop()
+		device.timer = nil
 	}
 	if err := device.openPin.Out(gpio.Low); err != nil {
 		return err
