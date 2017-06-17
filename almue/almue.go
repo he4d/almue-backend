@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/gorilla/mux"
 	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
@@ -21,11 +20,6 @@ type Almue struct {
 
 // Initialize sets up the complete api
 func (a *Almue) Initialize(dbPath string, simulate bool) {
-	govalidator.SetFieldsRequiredByDefault(true)
-	govalidator.CustomTypeTagMap.Set("gpio", govalidator.CustomTypeValidator(func(i interface{}, o interface{}) bool {
-		asInt := i.(int)
-		return asInt >= 1 && asInt <= 40
-	}))
 	a.initializeServer()
 	a.initializeDatabase(dbPath)
 	a.initializeDeviceController(simulate)

@@ -76,13 +76,13 @@ func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) (states 
 		var openPin gpio.PinIO
 		var closePin gpio.PinIO
 		if d.simulate {
-			openPin = &simulatePinIO{name: shutterModel.Description, number: shutterModel.OpenPin}
-			closePin = &simulatePinIO{name: shutterModel.Description, number: shutterModel.ClosePin}
+			openPin = &simulatePinIO{name: *shutterModel.Description, number: *shutterModel.OpenPin}
+			closePin = &simulatePinIO{name: *shutterModel.Description, number: *shutterModel.ClosePin}
 		} else {
-			openPin = gpioreg.ByNumber(shutterModel.OpenPin)
-			closePin = gpioreg.ByNumber(shutterModel.ClosePin)
+			openPin = gpioreg.ByNumber(*shutterModel.OpenPin)
+			closePin = gpioreg.ByNumber(*shutterModel.ClosePin)
 		}
-		duration := time.Duration(shutterModel.CompleteWayInSeconds) * time.Second
+		duration := time.Duration(*shutterModel.CompleteWayInSeconds) * time.Second
 		state := make(chan string)
 		quit := make(chan bool)
 		d.shutters[shutterModel.ID] = &shutter{
@@ -125,9 +125,9 @@ func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) (stat
 	for _, lightingModel := range lightings {
 		var switchPin gpio.PinIO
 		if d.simulate {
-			switchPin = &simulatePinIO{name: lightingModel.Description, number: lightingModel.SwitchPin}
+			switchPin = &simulatePinIO{name: *lightingModel.Description, number: *lightingModel.SwitchPin}
 		} else {
-			switchPin = gpioreg.ByNumber(lightingModel.SwitchPin)
+			switchPin = gpioreg.ByNumber(*lightingModel.SwitchPin)
 		}
 		state := make(chan string)
 		quit := make(chan bool)

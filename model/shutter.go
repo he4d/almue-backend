@@ -6,16 +6,16 @@ import (
 
 //Shutter represents the database object of a shutter
 type Shutter struct {
-	Base                 `valid:"-"`
-	Description          string    `json:"description" valid:"alphanum,required"`
-	OpenPin              int       `json:"openPin" valid:"gpio,required"`
-	ClosePin             int       `json:"closePin" valid:"gpio,required"`
-	CompleteWayInSeconds int       `json:"completeWayInSeconds" valid:"required"`
-	TimerEnabled         bool      `json:"timerEnabled" valid:"-"`
-	OpenTime             time.Time `json:"openTime" valid:"-"`
-	CloseTime            time.Time `json:"closeTime" valid:"-"`
-	EmergencyEnabled     bool      `json:"emergencyEnabled" valid:"-"`
-	DeviceStatus         string    `json:"deviceStatus" valid:"-"`
-	Disabled             bool      `json:"disabled" valid:"-"`
-	FloorID              int64     `json:"floorId" valid:"-"`
+	Base
+	Description          *string   `json:"description"`
+	OpenPin              *int      `json:"openPin"`
+	ClosePin             *int      `json:"closePin"`
+	CompleteWayInSeconds *int      `json:"completeWayInSeconds"`
+	TimerEnabled         bool      `json:"timerEnabled"`
+	OpenTime             time.Time `json:"openTime"`
+	CloseTime            time.Time `json:"closeTime"`
+	EmergencyEnabled     bool      `json:"emergencyEnabled"`
+	DeviceStatus         string    `json:"deviceStatus"`
+	Disabled             bool      `json:"disabled"`
+	FloorID              int64     `json:"floorId"`
 }
