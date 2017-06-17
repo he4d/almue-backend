@@ -15,6 +15,7 @@ func (a *Almue) getAllFloors(w http.ResponseWriter, r *http.Request) {
 	floors, err := a.store.GetFloorList()
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, err.Error())
+		return
 	}
 
 	for i := range floors {
@@ -58,6 +59,7 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 	floor, err := a.store.GetFloor(id)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	emptyShutters := make([]*model.Shutter, 0)
@@ -81,10 +83,11 @@ func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			respondWithError(w, http.StatusNotFound, "Floor not found")
+			return
 		default:
 			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		return
 	}
 
 	floor.Shutters, err = a.store.GetShutterListOfFloor(i)
@@ -133,6 +136,7 @@ func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	floor, err := a.store.GetFloor(id)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJSON(w, http.StatusOK, floor)

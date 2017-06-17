@@ -13,7 +13,7 @@ type Lighting struct {
 	OnTime           time.Time `json:"onTime" valid:"-"`
 	OffTime          time.Time `json:"offTime" valid:"-"`
 	EmergencyEnabled bool      `json:"emergencyEnabled" valid:"-"`
-	DeviceStatus     int       `json:"deviceStatus" valid:"int"`
+	DeviceStatus     string    `json:"deviceStatus" valid:"-"`
 	Disabled         bool      `json:"disabled" valid:"-"`
 	FloorID          int64     `json:"floorId" valid:"-"`
 }

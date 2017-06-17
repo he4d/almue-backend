@@ -15,4 +15,6 @@ type shutter struct {
 	closeJob            *scheduler.Job
 	completeWayDuration time.Duration
 	timer               *time.Timer
+	state               chan string
+	quit                chan bool
 }

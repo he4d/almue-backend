@@ -15,6 +15,8 @@ type Almue struct {
 	router           *mux.Router
 	store            store.Store
 	deviceController rpi.DeviceController
+	shutterStates    map[int64]*rpi.StateSynchronization
+	lightingStates   map[int64]*rpi.StateSynchronization
 }
 
 // Initialize sets up the complete api
@@ -40,26 +42,89 @@ func (a *Almue) initializeDatabase(dbPath string) {
 
 func (a *Almue) initializeDeviceController(simulate bool) {
 	a.deviceController = rpi.New(simulate)
-	allLightings, err := a.store.GetAllLightings()
-	if err != nil {
-		log.Println(err)
-		log.Fatalln("initializeDeviceController failed")
-	}
-	if err := a.deviceController.RegisterLightings(allLightings...); err != nil {
-		log.Println(err)
-		log.Fatalln("could not register lightings")
-	}
+	a.shutterStates = make(map[int64]*rpi.StateSynchronization)
+	a.lightingStates = make(map[int64]*rpi.StateSynchronization)
 
+	// Register all shutters
 	allShutters, err := a.store.GetAllShutters()
 	if err != nil {
 		log.Println(err)
 		log.Fatalln("initializeDeviceController failed")
 	}
 
-	if err := a.deviceController.RegisterShutters(allShutters...); err != nil {
+	shutterStates, err := a.deviceController.RegisterShutters(allShutters...)
+	if err != nil {
 		log.Println(err)
 		log.Fatalln("could not register shutters")
 	}
+
+	for id, state := range shutterStates {
+		if err := a.registerShutterStateSynchronization(id, state); err != nil {
+			log.Println(err)
+			log.Fatalln("registering shutterStateSynchronization failed")
+		}
+	}
+
+	// Register all lightings
+	allLightings, err := a.store.GetAllLightings()
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("initializeDeviceController failed")
+	}
+	lightingStates, err := a.deviceController.RegisterLightings(allLightings...)
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("could not register lightings")
+	}
+
+	for id, state := range lightingStates {
+		if err := a.registerLightingStateSynchronization(id, state); err != nil {
+			log.Println(err)
+			log.Fatalln("registering lightingStateSynchronization failed")
+		}
+	}
+}
+
+func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *rpi.StateSynchronization) error {
+	if _, ok := a.shutterStates[shutterID]; ok {
+		log.Fatalf("shutter with this id: %d is already registered for state synchronization. Exiting...\n", shutterID)
+	}
+	a.shutterStates[shutterID] = stateSync
+	go func() {
+		for {
+			select {
+			case newState := <-stateSync.State:
+				if err := a.store.UpdateShutterState(shutterID, newState); err != nil {
+					//TODO: errorhandling
+				}
+			case <-stateSync.Quit:
+				log.Printf("Quitting goroutine of shutter: %d", shutterID)
+				return
+			}
+		}
+	}()
+	return nil
+}
+
+func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync *rpi.StateSynchronization) error {
+	if _, ok := a.lightingStates[lightingID]; ok {
+		log.Fatalf("lighting with this id: %d is already registered for state synchronization. Exiting...\n", lightingID)
+	}
+	a.lightingStates[lightingID] = stateSync
+	go func() {
+		for {
+			select {
+			case newState := <-stateSync.State:
+				if err := a.store.UpdateLightingState(lightingID, newState); err != nil {
+					//TODO: errorhandling
+				}
+			case <-stateSync.Quit:
+				log.Printf("Quitting goroutine of lighting: %d", lightingID)
+				return
+			}
+		}
+	}()
+	return nil
 }
 
 func (a *Almue) initializeServer() {

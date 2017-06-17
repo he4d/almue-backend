@@ -44,10 +44,11 @@ func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			respondWithError(w, http.StatusNotFound, "Lighting not found")
+			return
 		default:
 			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		return
 	}
 
 	respondWithJSON(w, http.StatusOK, lighting)
@@ -84,10 +85,18 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	lighting, err := a.store.GetLightingByFloor(newID, i)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	if err := a.deviceController.RegisterLightings(lighting); err != nil {
+	lightingState, err := a.deviceController.RegisterLightings(lighting)
+	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = a.registerLightingStateSynchronization(newID, lightingState[newID]); err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, lighting)
@@ -129,6 +138,7 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	lighting, err := a.store.GetLightingByFloor(lightingID, floorID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	//TODO: update a.devices
@@ -151,6 +161,7 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.deviceController.UnregisterLighting(lightingID); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJSON(w, http.StatusNoContent, nil)
@@ -180,11 +191,13 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	case "on":
 		if err := a.deviceController.TurnLightingOn(lightingID); err != nil {
 			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 		break
 	case "off":
 		if err := a.deviceController.TurnLightingOff(lightingID); err != nil {
 			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 		break
 	default:

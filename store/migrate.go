@@ -122,7 +122,8 @@ complete_way_in_seconds integer NOT NULL,
 timer_enabled bool,
 open_time datetime DEFAULT current_timestamp,
 close_time datetime DEFAULT current_timestamp,
-emergency_enabled bool,device_status integer,
+emergency_enabled bool,
+device_status varchar(10),
 disabled bool,
 floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE 
 )
@@ -139,7 +140,7 @@ timer_enabled bool,
 on_time datetime DEFAULT current_timestamp,
 off_time datetime DEFAULT current_timestamp,
 emergency_enabled bool,
-device_status integer,
+device_status varchar(10),
 disabled bool,
 floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE
 )

@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+
 	"github.com/he4d/almue/model"
 )
 
@@ -89,7 +91,17 @@ func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
 }
 
 func (d *datastore) DeleteLighting(lightingID int64) error {
-	_, err := d.Exec(lightingDeleteStmt, lightingID)
+	res, err := d.Exec(lightingDeleteStmt, lightingID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("Lighting with id %d didnt exist", lightingID)
+	}
 	return err
 }
 
@@ -103,6 +115,12 @@ func (d *datastore) UpdateLighting(l *model.Lighting) error {
 	return err
 }
 
+func (d *datastore) UpdateLightingState(lightingID int64, newState string) error {
+	_, err :=
+		d.Exec(lightingStateUpdateStmt, newState, lightingID)
+	return err
+}
+
 var lightingByIDStmt = `
 SELECT * FROM lightings WHERE id = ? AND floor_id = ?
 `
@@ -112,6 +130,12 @@ SELECT * FROM lightings WHERE floor_id = ?
 
 var lightingsFindAllStmt = `
 SELECT * FROM lightings
+`
+
+var lightingStateUpdateStmt = `
+UPDATE lightings SET
+device_status = ? 
+WHERE id = ?
 `
 
 var lightingCreateStmt = `

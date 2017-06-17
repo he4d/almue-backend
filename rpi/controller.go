@@ -14,13 +14,19 @@ import (
 	"periph.io/x/periph/conn/gpio/gpioreg"
 )
 
+//StateSynchronization holds the channels for the synchronization of the state
+type StateSynchronization struct {
+	State chan string
+	Quit  chan bool
+}
+
 //DeviceController must be implemented by every controller that should control the devices
 type DeviceController interface {
-	RegisterShutters(shutters ...*model.Shutter) error
+	RegisterShutters(shutters ...*model.Shutter) (states map[int64]*StateSynchronization, err error)
 
 	UnregisterShutter(shutterID int64) error
 
-	RegisterLightings(lightings ...*model.Lighting) error
+	RegisterLightings(lightings ...*model.Lighting) (states map[int64]*StateSynchronization, err error)
 
 	UnregisterLighting(lightingID int64) error
 
@@ -64,7 +70,8 @@ func New(simulate bool) DeviceController {
 	}
 }
 
-func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) error {
+func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) (states map[int64]*StateSynchronization, err error) {
+	states = make(map[int64]*StateSynchronization)
 	for _, shutterModel := range shutters {
 		var openPin gpio.PinIO
 		var closePin gpio.PinIO
@@ -76,31 +83,45 @@ func (d *deviceController) RegisterShutters(shutters ...*model.Shutter) error {
 			closePin = gpioreg.ByNumber(shutterModel.ClosePin)
 		}
 		duration := time.Duration(shutterModel.CompleteWayInSeconds) * time.Second
+		state := make(chan string)
+		quit := make(chan bool)
 		d.shutters[shutterModel.ID] = &shutter{
 			ID:                  shutterModel.ID,
 			openPin:             openPin,
 			closePin:            closePin,
 			completeWayDuration: duration,
+			state:               state,
+			quit:                quit,
 		}
+		states[shutterModel.ID] = &StateSynchronization{State: state, Quit: quit}
 		if shutterModel.TimerEnabled {
-			if err := d.ScheduleShutterJobs(shutterModel); err != nil {
-				return err
+			if err = d.ScheduleShutterJobs(shutterModel); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return states, err
 }
 
 func (d *deviceController) UnregisterShutter(shutterID int64) error {
+	shutter, ok := d.shutters[shutterID]
+	if !ok {
+		return fmt.Errorf("Shutter with id: %d cannot be unregistered, because it doesnt exist", shutterID)
+	}
+
 	if err := d.UnscheduleShutterJobs(shutterID); err != nil {
 		return err
 	}
+
+	//Stop state synchronization
+	shutter.quit <- true
 
 	delete(d.shutters, shutterID)
 	return nil
 }
 
-func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) error {
+func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) (states map[int64]*StateSynchronization, err error) {
+	states = make(map[int64]*StateSynchronization)
 	for _, lightingModel := range lightings {
 		var switchPin gpio.PinIO
 		if d.simulate {
@@ -108,23 +129,36 @@ func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) error
 		} else {
 			switchPin = gpioreg.ByNumber(lightingModel.SwitchPin)
 		}
+		state := make(chan string)
+		quit := make(chan bool)
 		d.lightings[lightingModel.ID] = &lighting{
 			ID:        lightingModel.ID,
 			switchPin: switchPin,
+			state:     state,
+			quit:      quit,
 		}
+		states[lightingModel.ID] = &StateSynchronization{State: state, Quit: quit}
 		if lightingModel.TimerEnabled {
-			if err := d.ScheduleLightingJobs(lightingModel); err != nil {
-				return err
+			if err = d.ScheduleLightingJobs(lightingModel); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return states, err
 }
 
 func (d *deviceController) UnregisterLighting(lightingID int64) error {
+	lighting, ok := d.lightings[lightingID]
+	if !ok {
+		return fmt.Errorf("Lighting with id: %d cannot be unregistered, because it doesnt exist", lightingID)
+	}
 	if err := d.UnscheduleLightingJobs(lightingID); err != nil {
 		return err
 	}
+
+	//Stop state synchronization
+	lighting.quit <- true
+
 	delete(d.lightings, lightingID)
 	return nil
 }
@@ -143,6 +177,7 @@ func (d *deviceController) OpenShutter(shutterID int64) error {
 	if err := device.openPin.Out(gpio.High); err != nil {
 		return err
 	}
+	device.state <- "opening"
 	//TODO: handle error..
 	device.timer = time.AfterFunc(device.completeWayDuration, func() {
 		if err := device.closePin.Out(gpio.Low); err != nil {
@@ -151,6 +186,7 @@ func (d *deviceController) OpenShutter(shutterID int64) error {
 		if err := device.openPin.Out(gpio.Low); err != nil {
 			// return err
 		}
+		device.state <- "stopped"
 		// return nil
 	})
 
@@ -171,6 +207,7 @@ func (d *deviceController) CloseShutter(shutterID int64) error {
 	if err := device.closePin.Out(gpio.High); err != nil {
 		return err
 	}
+	device.state <- "closing"
 	//TODO: handle error
 	device.timer = time.AfterFunc(device.completeWayDuration, func() {
 		if err := device.closePin.Out(gpio.Low); err != nil {
@@ -179,6 +216,7 @@ func (d *deviceController) CloseShutter(shutterID int64) error {
 		if err := device.openPin.Out(gpio.Low); err != nil {
 			// return err
 		}
+		device.state <- "stopped"
 		// return nil
 	})
 	return nil
@@ -198,6 +236,7 @@ func (d *deviceController) StopShutter(shutterID int64) error {
 	if err := device.closePin.Out(gpio.Low); err != nil {
 		return err
 	}
+	device.state <- "stopped"
 	return nil
 }
 
@@ -209,6 +248,7 @@ func (d *deviceController) TurnLightingOn(lightingID int64) error {
 	if err := device.switchPin.Out(gpio.High); err != nil {
 		return err
 	}
+	device.state <- "on"
 	return nil
 }
 
@@ -220,6 +260,7 @@ func (d *deviceController) TurnLightingOff(lightingID int64) error {
 	if err := device.switchPin.Out(gpio.Low); err != nil {
 		return err
 	}
+	device.state <- "off"
 	return nil
 }
 

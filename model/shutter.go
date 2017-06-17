@@ -15,7 +15,7 @@ type Shutter struct {
 	OpenTime             time.Time `json:"openTime" valid:"-"`
 	CloseTime            time.Time `json:"closeTime" valid:"-"`
 	EmergencyEnabled     bool      `json:"emergencyEnabled" valid:"-"`
-	DeviceStatus         int       `json:"deviceStatus" valid:"-"`
+	DeviceStatus         string    `json:"deviceStatus" valid:"-"`
 	Disabled             bool      `json:"disabled" valid:"-"`
 	FloorID              int64     `json:"floorId" valid:"-"`
 }

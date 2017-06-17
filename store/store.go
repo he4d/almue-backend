@@ -42,6 +42,10 @@ type Store interface {
 	UpdateLighting(*model.Lighting) error
 
 	DeleteLighting(int64) error
+
+	UpdateLightingState(int64, string) error
+
+	UpdateShutterState(int64, string) error
 }
 
 type datastore struct {

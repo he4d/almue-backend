@@ -43,10 +43,11 @@ func (a *Almue) getShutter(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case sql.ErrNoRows:
 			respondWithError(w, http.StatusNotFound, "Shutter not found")
+			return
 		default:
 			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
-		return
 	}
 
 	respondWithJSON(w, http.StatusOK, shutter)
@@ -83,10 +84,18 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 	shutter, err := a.store.GetShutterByFloor(newID, i)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	if err := a.deviceController.RegisterShutters(shutter); err != nil {
+	shutterState, err := a.deviceController.RegisterShutters(shutter)
+	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err = a.registerShutterStateSynchronization(newID, shutterState[newID]); err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, shutter)
@@ -128,6 +137,7 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	shutter, err := a.store.GetShutterByFloor(shutterID, floorID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	//TODO: update a.devices
@@ -150,6 +160,7 @@ func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.deviceController.UnregisterShutter(shutterID); err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJSON(w, http.StatusNoContent, nil)
@@ -179,16 +190,19 @@ func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 	case "open":
 		if err := a.deviceController.OpenShutter(shutterID); err != nil {
 			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 		break
 	case "close":
 		if err := a.deviceController.CloseShutter(shutterID); err != nil {
 			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 		break
 	case "stop":
 		if err := a.deviceController.StopShutter(shutterID); err != nil {
 			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 		break
 	default:

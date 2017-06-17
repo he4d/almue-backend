@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+
 	"github.com/he4d/almue/model"
 )
 
@@ -91,7 +93,17 @@ func (d *datastore) CreateShutter(s *model.Shutter) (int64, error) {
 }
 
 func (d *datastore) DeleteShutter(shutterID int64) error {
-	_, err := d.Exec(shutterDeleteStmt, shutterID)
+	res, err := d.Exec(shutterDeleteStmt, shutterID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("Shutter with id %d didnt exist", shutterID)
+	}
 	return err
 }
 
@@ -105,6 +117,12 @@ func (d *datastore) UpdateShutter(s *model.Shutter) error {
 	return err
 }
 
+func (d *datastore) UpdateShutterState(shutterID int64, newState string) error {
+	_, err :=
+		d.Exec(shutterStateUpdateStmt, newState, shutterID)
+	return err
+}
+
 var shutterFindIDStmt = `
 SELECT * FROM shutters WHERE id = ? AND floor_id = ?
 `
@@ -115,6 +133,12 @@ SELECT * FROM shutters WHERE floor_id = ?
 
 var shuttersFindAllStmt = `
 SELECT * FROM shutters
+`
+
+var shutterStateUpdateStmt = `
+UPDATE shutters SET
+device_status = ? 
+WHERE id = ?
 `
 
 var shutterCreateStmt = `

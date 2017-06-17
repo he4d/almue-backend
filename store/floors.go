@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+
 	"github.com/he4d/almue/model"
 )
 
@@ -51,7 +53,17 @@ func (d *datastore) CreateFloor(f *model.Floor) (int64, error) {
 }
 
 func (d *datastore) DeleteFloor(floorID int64) error {
-	_, err := d.Exec(floorDeleteStmt, floorID)
+	res, err := d.Exec(floorDeleteStmt, floorID)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("Floor with id %d didnt exist", floorID)
+	}
 	return err
 }
 
