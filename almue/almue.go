@@ -98,7 +98,6 @@ func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *
 					//TODO: errorhandling
 				}
 			case <-stateSync.Quit:
-				log.Printf("Quitting goroutine of shutter: %d", shutterID)
 				return
 			}
 		}
@@ -119,7 +118,6 @@ func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync
 					//TODO: errorhandling
 				}
 			case <-stateSync.Quit:
-				log.Printf("Quitting goroutine of lighting: %d", lightingID)
 				return
 			}
 		}
