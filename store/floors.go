@@ -8,7 +8,6 @@ import (
 
 func (d *datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	floor := &model.Floor{}
-	//TODO: Add Shutters and Lightings
 	err := d.QueryRow(floorFindIDStmt,
 		floorID).Scan(&floor.ID, &floor.Created, &floor.Modified, &floor.Description)
 	if err != nil {
