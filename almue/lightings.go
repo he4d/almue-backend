@@ -1,101 +1,83 @@
 package almue
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/gorilla/mux"
 	"github.com/he4d/almue/model"
 )
 
 func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	i, err := strconv.ParseInt(vars["floorID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid floor ID")
+	ctx := r.Context()
+	floor, ok := ctx.Value(contextKeyFloor).(*model.Floor)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
 	}
-	lightings, err := a.store.GetLightingListOfFloor(i)
+	lightings, err := a.store.GetLightingListOfFloor(floor.ID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
+	respondWithJSON(w, http.StatusOK, lightings)
+}
 
+func (a *Almue) getAllLightings(w http.ResponseWriter, r *http.Request) {
+	lightings, err := a.store.GetLightingList()
+	if err != nil {
+		respondWithError(w, 500)
+		return
+	}
 	respondWithJSON(w, http.StatusOK, lightings)
 }
 
 func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	floorID, err := strconv.ParseInt(vars["floorID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid floor ID")
+	ctx := r.Context()
+	lighting, ok := ctx.Value(contextKeyLighting).(*model.Lighting)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
-	}
-	shutterID, err := strconv.ParseInt(vars["lightingID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid lighting ID")
-		return
-	}
-	lighting, err := a.store.GetLightingByFloor(shutterID, floorID)
-	if err != nil {
-		switch err {
-		case sql.ErrNoRows:
-			respondWithError(w, http.StatusNotFound, "Lighting not found")
-			return
-		default:
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 	}
 
 	respondWithJSON(w, http.StatusOK, lighting)
 }
 
 func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	i, err := strconv.ParseInt(vars["floorID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid floor ID")
+	ctx := r.Context()
+	floor, ok := ctx.Value(contextKeyFloor).(*model.Floor)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 	l := new(model.Lighting)
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(l); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		respondWithError(w, 400)
 		return
 	}
 	defer r.Body.Close()
-	l.FloorID = i
-
-	_, err = govalidator.ValidateStruct(l)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
+	l.FloorID = floor.ID
 
 	newID, err := a.store.CreateLighting(l)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
-	lighting, err := a.store.GetLightingByFloor(newID, i)
+	lighting, err := a.store.GetLighting(newID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
 	lightingState, err := a.deviceController.RegisterLightings(lighting)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
 	if err = a.registerLightingStateSynchronization(newID, lightingState[newID]); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
@@ -103,41 +85,29 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	floorID, err := strconv.ParseInt(vars["floorID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid floor ID")
-		return
-	}
-
-	lightingID, err := strconv.ParseInt(vars["lightingID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid lighting ID")
+	ctx := r.Context()
+	lighting, ok := ctx.Value(contextKeyLighting).(*model.Lighting)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
 	l := new(model.Lighting)
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(l); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
+		respondWithError(w, 400)
 		return
 	}
 	defer r.Body.Close()
 
-	_, err = govalidator.ValidateStruct(l)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
 	if err := a.store.UpdateLighting(l); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
-	lighting, err := a.store.GetLightingByFloor(lightingID, floorID)
+	lighting, err := a.store.GetLighting(lighting.ID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		respondWithError(w, 500)
 		return
 	}
 
@@ -147,20 +117,20 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	lightingID, err := strconv.ParseInt(vars["lightingID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid lighting ID")
+	ctx := r.Context()
+	lighting, ok := ctx.Value(contextKeyLighting).(*model.Lighting)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
-	if err := a.store.DeleteLighting(lightingID); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	if err := a.store.DeleteLighting(lighting.ID); err != nil {
+		respondWithError(w, 500)
 		return
 	}
 
-	if err := a.deviceController.UnregisterLighting(lightingID); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	if err := a.deviceController.UnregisterLighting(lighting.ID); err != nil {
+		respondWithError(w, 500)
 		return
 	}
 
@@ -168,40 +138,35 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	floorID, err := strconv.ParseInt(vars["floorID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid floor ID")
-		return
-	}
-	lightingID, err := strconv.ParseInt(vars["lightingID"], 10, 64)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid lighting ID")
+	ctx := r.Context()
+	lighting, ok := ctx.Value(contextKeyShutter).(*model.Lighting)
+	if !ok {
+		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
-	_, err = a.store.GetLightingByFloor(lightingID, floorID)
+	_, err := a.store.GetLighting(lighting.ID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Shutter not found")
+		respondWithError(w, 404)
 		return
 	}
 
-	action := vars["action"]
+	action := ctx.Value(contextKeyDeviceAction).(string)
 	switch action {
 	case "on":
-		if err := a.deviceController.TurnLightingOn(lightingID); err != nil {
-			respondWithError(w, http.StatusBadRequest, err.Error())
+		if err := a.deviceController.TurnLightingOn(lighting.ID); err != nil {
+			respondWithError(w, 400)
 			return
 		}
 		break
 	case "off":
-		if err := a.deviceController.TurnLightingOff(lightingID); err != nil {
-			respondWithError(w, http.StatusBadRequest, err.Error())
+		if err := a.deviceController.TurnLightingOff(lighting.ID); err != nil {
+			respondWithError(w, 400)
 			return
 		}
 		break
 	default:
-		respondWithError(w, http.StatusBadRequest, "Invalid Action")
+		respondWithError(w, 400)
 		return
 	}
 }

@@ -6,10 +6,10 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetShutterByFloor(shutterID, floorID int64) (*model.Shutter, error) {
+func (d *datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	s := new(model.Shutter)
 
-	err := d.QueryRow(shutterFindIDStmt, shutterID, floorID).Scan(
+	err := d.QueryRow(shutterByIDStmt, shutterID).Scan(
 		&s.ID, &s.Created, &s.Modified, &s.Description,
 		&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
 		&s.TimerEnabled, &s.OpenTime, &s.CloseTime,
@@ -49,7 +49,7 @@ func (d *datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, erro
 	return shutters, err
 }
 
-func (d *datastore) GetAllShutters() ([]*model.Shutter, error) {
+func (d *datastore) GetShutterList() ([]*model.Shutter, error) {
 	rows, err := d.Query(shuttersFindAllStmt)
 
 	if err != nil {
@@ -123,8 +123,8 @@ func (d *datastore) UpdateShutterState(shutterID int64, newState string) error {
 	return err
 }
 
-var shutterFindIDStmt = `
-SELECT * FROM shutters WHERE id = ? AND floor_id = ?
+var shutterByIDStmt = `
+SELECT * FROM shutters WHERE id = ?
 `
 
 var shuttersOfFloorStmt = `

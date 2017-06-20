@@ -6,21 +6,6 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetLightingByFloor(lightingID, floorID int64) (*model.Lighting, error) {
-	l := new(model.Lighting)
-
-	err := d.QueryRow(lightingByIDStmt, lightingID, floorID).Scan(
-		&l.ID, &l.Created, &l.Modified, &l.Description,
-		&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
-		&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
-		&l.FloorID)
-
-	if err != nil {
-		return nil, err
-	}
-	return l, err
-}
-
 func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsOfFloorStmt, floorID)
 
@@ -47,7 +32,7 @@ func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, er
 	return lightings, err
 }
 
-func (d *datastore) GetAllLightings() ([]*model.Lighting, error) {
+func (d *datastore) GetLightingList() ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsFindAllStmt)
 
 	if err != nil {
@@ -121,9 +106,21 @@ func (d *datastore) UpdateLightingState(lightingID int64, newState string) error
 	return err
 }
 
-var lightingByIDStmt = `
-SELECT * FROM lightings WHERE id = ? AND floor_id = ?
-`
+func (d *datastore) GetLighting(lightingID int64) (*model.Lighting, error) {
+	l := new(model.Lighting)
+
+	err := d.QueryRow(lightingByIDStmt, lightingID).Scan(
+		&l.ID, &l.Created, &l.Modified, &l.Description,
+		&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+		&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
+		&l.FloorID)
+
+	if err != nil {
+		return nil, err
+	}
+	return l, err
+}
+
 var lightingsOfFloorStmt = `
 SELECT * FROM lightings WHERE floor_id = ?
 `
@@ -136,6 +133,10 @@ var lightingStateUpdateStmt = `
 UPDATE lightings SET
 device_status = ? 
 WHERE id = ?
+`
+
+var lightingByIDStmt = `
+SELECT * FROM lighting WHERE id = ?
 `
 
 var lightingCreateStmt = `

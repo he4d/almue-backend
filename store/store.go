@@ -19,11 +19,15 @@ type Store interface {
 
 	DeleteFloor(floorID int64) error
 
-	GetShutterByFloor(shutterID int64, floorID int64) (*model.Shutter, error)
+	NumShuttersOfFloor(floorID int64) (int, error)
+
+	NumLightingsOfFloor(floorID int64) (int, error)
+
+	GetShutter(shutterID int64) (*model.Shutter, error)
+
+	GetShutterList() ([]*model.Shutter, error)
 
 	GetShutterListOfFloor(int64) ([]*model.Shutter, error)
-
-	GetAllShutters() ([]*model.Shutter, error)
 
 	CreateShutter(*model.Shutter) (int64, error)
 
@@ -31,11 +35,11 @@ type Store interface {
 
 	DeleteShutter(shutterID int64) error
 
-	GetLightingByFloor(lightingID int64, floorID int64) (*model.Lighting, error)
+	GetLighting(lightingID int64) (*model.Lighting, error)
+
+	GetLightingList() ([]*model.Lighting, error)
 
 	GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error)
-
-	GetAllLightings() ([]*model.Lighting, error)
 
 	CreateLighting(*model.Lighting) (int64, error)
 

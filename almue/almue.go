@@ -3,44 +3,56 @@ package almue
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
-	"github.com/gorilla/mux"
 	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
+	"github.com/pressly/chi"
+	"github.com/pressly/chi/middleware"
 )
 
 // Almue holds all the fields for the complete Application Context
 type Almue struct {
-	router           *mux.Router
+	router           *chi.Mux
 	store            store.Store
 	deviceController rpi.DeviceController
 	shutterStates    map[int64]*rpi.StateSynchronization
 	lightingStates   map[int64]*rpi.StateSynchronization
+	simulate         bool
+	dbPath           string
+	verbose          bool
 }
 
-// Initialize sets up the complete api
-func (a *Almue) Initialize(dbPath string, simulate bool) {
-	a.initializeServer()
-	a.initializeDatabase(dbPath)
-	a.initializeDeviceController(simulate)
+// NewAlmue initializes a new Almue struct, initializes it and return it
+func NewAlmue(dbPath string, simulate bool, verbose bool) *Almue {
+	app := Almue{dbPath: dbPath, simulate: simulate, verbose: verbose}
+	app.initialize()
+	return &app
 }
 
-// Run must be called to start the api
-func (a *Almue) Run(addr string) {
+// Serve must be called to start the Almue backend
+func (a *Almue) Serve(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.router))
 }
 
-func (a *Almue) initializeDatabase(dbPath string) {
-	a.store = store.New(dbPath)
+func (a *Almue) initialize() {
+	a.initializeRouter()
+	a.initializeDatabase()
+	a.initializeDeviceController()
 }
 
-func (a *Almue) initializeDeviceController(simulate bool) {
-	a.deviceController = rpi.New(simulate)
+func (a *Almue) initializeDatabase() {
+	a.store = store.New(a.dbPath)
+}
+
+func (a *Almue) initializeDeviceController() {
+	a.deviceController = rpi.New(a.simulate)
 	a.shutterStates = make(map[int64]*rpi.StateSynchronization)
 	a.lightingStates = make(map[int64]*rpi.StateSynchronization)
 
 	// Register all shutters
-	allShutters, err := a.store.GetAllShutters()
+	allShutters, err := a.store.GetShutterList()
 	if err != nil {
 		log.Println(err)
 		log.Fatalln("initializeDeviceController failed")
@@ -60,7 +72,7 @@ func (a *Almue) initializeDeviceController(simulate bool) {
 	}
 
 	// Register all lightings
-	allLightings, err := a.store.GetAllLightings()
+	allLightings, err := a.store.GetLightingList()
 	if err != nil {
 		log.Println(err)
 		log.Fatalln("initializeDeviceController failed")
@@ -119,30 +131,62 @@ func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync
 	return nil
 }
 
-func (a *Almue) initializeServer() {
-	a.router = mux.NewRouter()
+func (a *Almue) initializeRouter() {
+	a.router = chi.NewRouter()
+
+	// Set up the middleware
+	if a.verbose {
+		a.router.Use(middleware.Logger)
+	}
 
 	// Serve static files
-	fs := http.FileServer(http.Dir("frontend/static"))
-	a.router.Handle("/", fs)
+	workDir, _ := os.Getwd()
+	filesDir := filepath.Join(workDir, "frontend/dist")
+	a.router.FileServer("/", http.Dir(filesDir))
 
 	// Serve the api functions
-	a.router.HandleFunc("/api/floors", a.getAllFloors).Methods("GET")
-	a.router.HandleFunc("/api/floors", a.createFloor).Methods("POST")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}", a.getFloor).Methods("GET")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}", a.updateFloor).Methods("PUT")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}", a.deleteFloor).Methods("DELETE")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters", a.getAllShuttersOfFloor).Methods("GET")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters", a.createShutter).Methods("POST")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{shutterID:[0-9]+}", a.getShutter).Methods("GET")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{shutterID:[0-9]+}", a.updateShutter).Methods("PUT")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{shutterID:[0-9]+}", a.deleteShutter).Methods("DELETE")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings", a.getAllLightingsOfFloor).Methods("GET")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings", a.createLighting).Methods("POST")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.getLighting).Methods("GET")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.updateLighting).Methods("PUT")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/lightings/{lightingID:[0-9]+}", a.deleteLighting).Methods("DELETE")
-
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{shutterID:[0-9]+}/{action:[a-z]+}", a.controlShutter).Methods("POST")
-	a.router.HandleFunc("/api/floors/{floorID:[0-9]+}/shutters/{lighting:[0-9]+}/{action:[a-z]+}", a.controlLighting).Methods("POST")
+	a.router.Route("/api/shutters", func(r chi.Router) {
+		r.Get("/", a.getAllShutters)
+	})
+	a.router.Route("/api/lightings", func(r chi.Router) {
+		r.Get("/", a.getAllLightings)
+	})
+	a.router.Route("/api/floors", func(r chi.Router) {
+		r.Get("/", a.getAllFloors)
+		r.Post("/", a.createFloor)
+		r.Route("/:floorID", func(r chi.Router) {
+			r.Use(a.floorCtx)
+			r.Get("/", a.getFloor)
+			r.Put("/", a.updateFloor)
+			r.Delete("/", a.deleteFloor)
+			r.Route("/shutters", func(r chi.Router) {
+				r.Get("/", a.getAllShuttersOfFloor)
+				r.Post("/", a.createShutter)
+				r.Route("/:shutterID", func(r chi.Router) {
+					r.Use(a.shutterCtx)
+					r.Get("/", a.getShutter)
+					r.Put("/", a.updateShutter)
+					r.Delete("/", a.deleteShutter)
+					r.Route("/:action", func(r chi.Router) {
+						r.Use(a.deviceActionCtx)
+						r.Post("/", a.controlShutter)
+					})
+				})
+			})
+			r.Route("/lightings", func(r chi.Router) {
+				r.Get("/", a.getAllLightingsOfFloor)
+				r.Post("/", a.createLighting)
+				r.Route("/:lightingID", func(r chi.Router) {
+					r.Use(a.lightingCtx)
+					r.Get("/", a.getLighting)
+					r.Put("/", a.updateLighting)
+					r.Delete("/", a.deleteLighting)
+					r.Route("/:action", func(r chi.Router) {
+						r.Use(a.deviceActionCtx)
+						r.Post("/", a.controlLighting)
+					})
+				})
+			})
+		})
+	})
 }

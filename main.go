@@ -10,11 +10,11 @@ import (
 
 var (
 	simulate = flag.Bool("simulate", false, "starts simulation mode without gpio (operations will be logged instead)")
+	verbose  = flag.Bool("verbose", false, "verbose logging will be enabled")
 )
 
 func main() {
 	flag.Parse()
-	almue := almue.Almue{}
-	almue.Initialize("./almue.db", *simulate)
-	almue.Run(":8000")
+	almue := almue.NewAlmue("./almue.db", *simulate, *verbose)
+	almue.Serve(":8000")
 }
