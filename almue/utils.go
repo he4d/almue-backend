@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+//TODO: Replace these Methods with the built in renderer from chi (see https://github.com/go-chi/chi/tree/master/render)
 func respondWithError(w http.ResponseWriter, code int) {
 	http.Error(w, http.StatusText(code), code)
 }

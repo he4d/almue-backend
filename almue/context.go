@@ -11,10 +11,10 @@ import (
 type contextKey string
 
 var (
-	contextKeyFloor        = contextKey("floor")
-	contextKeyShutter      = contextKey("shutter")
-	contextKeyLighting     = contextKey("lighting")
-	contextKeyDeviceAction = contextKey("device-action")
+	contextKeyFloor      = contextKey("floor")
+	contextKeyShutter    = contextKey("shutter")
+	contextKeyLighting   = contextKey("lighting")
+	contextKeyAPIVersion = contextKey("api-version")
 )
 
 func (a *Almue) floorCtx(next http.Handler) http.Handler {
@@ -38,14 +38,6 @@ func (a *Almue) floorCtx(next http.Handler) http.Handler {
 		}
 		floor.NumLightings = numLightings
 		ctx := context.WithValue(r.Context(), contextKeyFloor, floor)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func (a *Almue) deviceActionCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		action := chi.URLParam(r, "action")
-		ctx := context.WithValue(r.Context(), contextKeyDeviceAction, action)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -74,4 +66,13 @@ func (a *Almue) lightingCtx(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), contextKeyLighting, lighting)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func apiVersionCtx(version string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r = r.WithContext(context.WithValue(r.Context(), contextKeyAPIVersion, version))
+			next.ServeHTTP(w, r)
+		})
+	}
 }

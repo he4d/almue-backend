@@ -22,12 +22,11 @@ type Almue struct {
 	lightingStates   map[int64]*rpi.StateSynchronization
 	simulate         bool
 	dbPath           string
-	verbose          bool
 }
 
 // NewAlmue initializes a new Almue struct, initializes it and return it
-func NewAlmue(dbPath string, simulate bool, verbose bool) *Almue {
-	app := Almue{dbPath: dbPath, simulate: simulate, verbose: verbose}
+func NewAlmue(dbPath string, simulate bool) *Almue {
+	app := Almue{dbPath: dbPath, simulate: simulate}
 	app.initialize()
 	return &app
 }
@@ -37,12 +36,19 @@ func (a *Almue) Serve(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.router))
 }
 
-//GenerateRoutes generates a markdown documentation of the API routes
-func (a *Almue) GenerateRoutes() string {
-	return (docgen.MarkdownRoutesDoc(a.router, docgen.MarkdownOpts{
+//GenerateRoutesDoc generates a markdown documentation of the API routes
+func (a *Almue) GenerateRoutesDoc() {
+	content := (docgen.MarkdownRoutesDoc(a.router, docgen.MarkdownOpts{
 		ProjectPath: "github.com/he4d/almue",
 		Intro:       "Welcome to the Almue generated docs.",
 	}))
+	f, err := os.Create("./doc/ROUTES.md")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	f.WriteString(content)
 }
 
 func (a *Almue) initialize() {
@@ -144,55 +150,58 @@ func (a *Almue) initializeRouter() {
 	a.router = chi.NewRouter()
 
 	// Set up the middleware
-	if a.verbose {
-		a.router.Use(middleware.Logger)
-	}
+	a.router.Use(middleware.RequestID)
+	a.router.Use(middleware.Logger)
+	a.router.Use(middleware.Recoverer)
 
 	// Serve static files
 	workDir, _ := os.Getwd()
 	filesDir := filepath.Join(workDir, "frontend/dist")
 	a.router.FileServer("/", http.Dir(filesDir))
 
-	// Serve the api functions
-	a.router.Route("/api/shutters", func(r chi.Router) {
-		r.Get("/", a.getAllShutters)
-	})
-	a.router.Route("/api/lightings", func(r chi.Router) {
-		r.Get("/", a.getAllLightings)
-	})
-	a.router.Route("/api/floors", func(r chi.Router) {
-		r.Get("/", a.getAllFloors)
-		r.Post("/", a.createFloor)
-		r.Route("/:floorID", func(r chi.Router) {
-			r.Use(a.floorCtx)
-			r.Get("/", a.getFloor)
-			r.Put("/", a.updateFloor)
-			r.Delete("/", a.deleteFloor)
+	// API version 1
+	a.router.Route("/api", func(r chi.Router) {
+		r.Route("/v1", func(r chi.Router) {
+			r.Use(apiVersionCtx("v1"))
 			r.Route("/shutters", func(r chi.Router) {
-				r.Get("/", a.getAllShuttersOfFloor)
-				r.Post("/", a.createShutter)
-				r.Route("/:shutterID", func(r chi.Router) {
-					r.Use(a.shutterCtx)
-					r.Get("/", a.getShutter)
-					r.Put("/", a.updateShutter)
-					r.Delete("/", a.deleteShutter)
-					r.Route("/:action", func(r chi.Router) {
-						r.Use(a.deviceActionCtx)
-						r.Post("/", a.controlShutter)
-					})
-				})
+				r.Get("/", a.getAllShutters)
 			})
 			r.Route("/lightings", func(r chi.Router) {
-				r.Get("/", a.getAllLightingsOfFloor)
-				r.Post("/", a.createLighting)
-				r.Route("/:lightingID", func(r chi.Router) {
-					r.Use(a.lightingCtx)
-					r.Get("/", a.getLighting)
-					r.Put("/", a.updateLighting)
-					r.Delete("/", a.deleteLighting)
-					r.Route("/:action", func(r chi.Router) {
-						r.Use(a.deviceActionCtx)
-						r.Post("/", a.controlLighting)
+				r.Get("/", a.getAllLightings)
+			})
+			r.Route("/floors", func(r chi.Router) {
+				r.Get("/", a.getAllFloors)
+				r.Post("/", a.createFloor)
+				r.Route("/:floorID", func(r chi.Router) {
+					r.Use(a.floorCtx)
+					r.Get("/", a.getFloor)
+					r.Put("/", a.updateFloor)
+					r.Delete("/", a.deleteFloor)
+					r.Route("/shutters", func(r chi.Router) {
+						r.Get("/", a.getAllShuttersOfFloor)
+						r.Post("/", a.createShutter)
+						r.Route("/:shutterID", func(r chi.Router) {
+							r.Use(a.shutterCtx)
+							r.Get("/", a.getShutter)
+							r.Put("/", a.updateShutter)
+							r.Delete("/", a.deleteShutter)
+							r.Route("/:action", func(r chi.Router) {
+								r.Post("/", a.controlShutter)
+							})
+						})
+					})
+					r.Route("/lightings", func(r chi.Router) {
+						r.Get("/", a.getAllLightingsOfFloor)
+						r.Post("/", a.createLighting)
+						r.Route("/:lightingID", func(r chi.Router) {
+							r.Use(a.lightingCtx)
+							r.Get("/", a.getLighting)
+							r.Put("/", a.updateLighting)
+							r.Delete("/", a.deleteLighting)
+							r.Route("/:action", func(r chi.Router) {
+								r.Post("/", a.controlLighting)
+							})
+						})
 					})
 				})
 			})

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/he4d/almue/model"
+	"github.com/pressly/chi"
 )
 
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
@@ -151,7 +152,7 @@ func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	action := ctx.Value(contextKeyDeviceAction).(string)
+	action := chi.URLParam(r, "action")
 	switch action {
 	case "open":
 		if err := a.deviceController.OpenShutter(shutter.ID); err != nil {
