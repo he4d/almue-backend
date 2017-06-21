@@ -9,6 +9,7 @@ import (
 	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
 	"github.com/pressly/chi"
+	"github.com/pressly/chi/docgen"
 	"github.com/pressly/chi/middleware"
 )
 
@@ -34,6 +35,14 @@ func NewAlmue(dbPath string, simulate bool, verbose bool) *Almue {
 // Serve must be called to start the Almue backend
 func (a *Almue) Serve(addr string) {
 	log.Fatal(http.ListenAndServe(addr, a.router))
+}
+
+//GenerateRoutes generates a markdown documentation of the API routes
+func (a *Almue) GenerateRoutes() string {
+	return (docgen.MarkdownRoutesDoc(a.router, docgen.MarkdownOpts{
+		ProjectPath: "github.com/he4d/almue",
+		Intro:       "Welcome to the Almue generated docs.",
+	}))
 }
 
 func (a *Almue) initialize() {
