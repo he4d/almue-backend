@@ -8,13 +8,19 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type contextKey string
+type contextKey struct {
+	name string
+}
+
+func (k *contextKey) String() string {
+	return "almue context value " + k.name
+}
 
 var (
-	contextKeyFloor      = contextKey("floor")
-	contextKeyShutter    = contextKey("shutter")
-	contextKeyLighting   = contextKey("lighting")
-	contextKeyAPIVersion = contextKey("api-version")
+	floorCtxKey      = &contextKey{"floor"}
+	shutterCtxKey    = &contextKey{"shutter"}
+	lightingCtxKey   = &contextKey{"lighting"}
+	apiVersionCtxKey = &contextKey{"api-version"}
 )
 
 func (a *Almue) floorCtx(next http.Handler) http.Handler {
@@ -25,7 +31,7 @@ func (a *Almue) floorCtx(next http.Handler) http.Handler {
 			http.Error(w, http.StatusText(404), 404)
 			return
 		}
-		ctx := context.WithValue(r.Context(), contextKeyFloor, floor)
+		ctx := context.WithValue(r.Context(), floorCtxKey, floor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -38,7 +44,7 @@ func (a *Almue) shutterCtx(next http.Handler) http.Handler {
 			http.Error(w, http.StatusText(404), 404)
 			return
 		}
-		ctx := context.WithValue(r.Context(), contextKeyShutter, shutter)
+		ctx := context.WithValue(r.Context(), shutterCtxKey, shutter)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -51,7 +57,7 @@ func (a *Almue) lightingCtx(next http.Handler) http.Handler {
 			http.Error(w, http.StatusText(404), 404)
 			return
 		}
-		ctx := context.WithValue(r.Context(), contextKeyLighting, lighting)
+		ctx := context.WithValue(r.Context(), lightingCtxKey, lighting)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -59,7 +65,7 @@ func (a *Almue) lightingCtx(next http.Handler) http.Handler {
 func apiVersionCtx(version string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			r = r.WithContext(context.WithValue(r.Context(), contextKeyAPIVersion, version))
+			r = r.WithContext(context.WithValue(r.Context(), apiVersionCtxKey, version))
 			next.ServeHTTP(w, r)
 		})
 	}

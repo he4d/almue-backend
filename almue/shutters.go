@@ -2,34 +2,13 @@ package almue
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/model"
 )
-
-type shutterPayload struct {
-	*model.Shutter
-}
-
-type shutterListPayload []*shutterPayload
-
-func (s *shutterPayload) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func (s *shutterPayload) Bind(r *http.Request) error {
-	return nil
-}
-
-func (a *Almue) newShutterListPayloadResponse(shutters []*model.Shutter) []render.Renderer {
-	list := []render.Renderer{}
-	for _, shutter := range shutters {
-		list = append(list, a.newShutterPayloadResponse(shutter))
-	}
-	return list
-}
 
 func (a *Almue) newShutterPayloadResponse(shutter *model.Shutter) *shutterPayload {
 	resp := &shutterPayload{Shutter: shutter}
@@ -39,50 +18,49 @@ func (a *Almue) newShutterPayloadResponse(shutter *model.Shutter) *shutterPayloa
 
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor, ok := ctx.Value(contextKeyFloor).(*model.Floor)
-	if !ok {
-		http.Error(w, http.StatusText(422), 422)
-		return
-	}
+	floor := ctx.Value(floorCtxKey).(*model.Floor)
+
 	shutters, err := a.store.GetShutterListOfFloor(floor.ID)
 	if err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
-	respondWithJSON(w, http.StatusOK, shutters)
+
+	if err := render.RenderList(w, r, a.newShutterListPayloadResponse(shutters)); err != nil {
+		render.Render(w, r, ErrRender(err))
+	}
+	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getAllShutters(w http.ResponseWriter, r *http.Request) {
 	shutters, err := a.store.GetShutterList()
 	if err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
-	respondWithJSON(w, http.StatusOK, shutters)
+
+	if err := render.RenderList(w, r, a.newShutterListPayloadResponse(shutters)); err != nil {
+		render.Render(w, r, ErrRender(err))
+	}
+	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter, ok := ctx.Value(contextKeyShutter).(*model.Shutter)
-	if !ok {
-		http.Error(w, http.StatusText(422), 422)
-		return
-	}
+	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
 
-	respondWithJSON(w, http.StatusOK, shutter)
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, a.newShutterPayloadResponse(shutter)) //TODO: Check err
 }
 
 func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor, ok := ctx.Value(contextKeyFloor).(*model.Floor)
-	if !ok {
-		http.Error(w, http.StatusText(422), 422)
-		return
-	}
+	floor := ctx.Value(floorCtxKey).(*model.Floor)
+
 	s := new(model.Shutter)
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(s); err != nil {
-		respondWithError(w, 400)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 	defer r.Body.Close()
@@ -90,119 +68,98 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 
 	newID, err := a.store.CreateShutter(s)
 	if err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
+	s.ID = newID
 
-	shutter, err := a.store.GetShutter(newID)
+	shutterState, err := a.deviceController.RegisterShutters(s)
 	if err != nil {
-		respondWithError(w, 500)
-		return
-	}
-
-	shutterState, err := a.deviceController.RegisterShutters(shutter)
-	if err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
 	if err = a.registerShutterStateSynchronization(newID, shutterState[newID]); err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, shutter)
+	render.Status(r, http.StatusCreated)
+	render.Render(w, r, a.newShutterPayloadResponse(s)) //TODO: Check err
 }
 
 func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter, ok := ctx.Value(contextKeyShutter).(*model.Shutter)
-	if !ok {
-		http.Error(w, http.StatusText(422), 422)
+	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+
+	s := &shutterPayload{Shutter: shutter}
+	if err := render.Bind(r, s); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
+	shutter = s.Shutter
 
-	s := new(model.Shutter)
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(s); err != nil {
-		respondWithError(w, 400)
-		return
-	}
-	defer r.Body.Close()
-
-	if err := a.store.UpdateShutter(s); err != nil {
-		respondWithError(w, 500)
-		return
-	}
-
-	shutter, err := a.store.GetShutter(shutter.ID)
-	if err != nil {
-		respondWithError(w, 500)
+	if err := a.store.UpdateShutter(shutter); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
 	//TODO: update a.devices
 
-	respondWithJSON(w, http.StatusOK, shutter)
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, a.newShutterPayloadResponse(shutter)) //TODO: Check err
 }
 
 func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter, ok := ctx.Value(contextKeyShutter).(*model.Shutter)
+	shutter, ok := ctx.Value(shutterCtxKey).(*model.Shutter)
 	if !ok {
 		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
 	if err := a.store.DeleteShutter(shutter.ID); err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
 	if err := a.deviceController.UnregisterShutter(shutter.ID); err != nil {
-		respondWithError(w, 500)
+		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	respondWithJSON(w, http.StatusNoContent, nil)
+	render.Status(r, http.StatusNoContent)
+	render.Render(w, r, a.newNoContentPayloadResponse()) //TODO: Check err
 }
 
 func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter, ok := ctx.Value(contextKeyShutter).(*model.Shutter)
-	if !ok {
-		http.Error(w, http.StatusText(422), 422)
-		return
-	}
-
-	_, err := a.store.GetShutter(shutter.ID)
-	if err != nil {
-		respondWithError(w, 404)
-		return
-	}
+	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
 
 	action := chi.URLParam(r, "action")
 	switch action {
 	case "open":
 		if err := a.deviceController.OpenShutter(shutter.ID); err != nil {
-			respondWithError(w, 400)
+			render.Render(w, r, ErrInternalServer(err))
 			return
 		}
 		break
 	case "close":
 		if err := a.deviceController.CloseShutter(shutter.ID); err != nil {
-			respondWithError(w, 400)
+			render.Render(w, r, ErrInternalServer(err))
 			return
 		}
 		break
 	case "stop":
 		if err := a.deviceController.StopShutter(shutter.ID); err != nil {
-			respondWithError(w, 400)
+			render.Render(w, r, ErrInternalServer(err))
 			return
 		}
 		break
 	default:
-		respondWithError(w, 400)
+		render.Render(w, r, ErrInvalidRequest(errors.New("Action not supported")))
 		return
 	}
+	render.Status(r, http.StatusOK)
+	render.Render(w, r, a.newNoContentPayloadResponse())
 }

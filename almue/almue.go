@@ -175,7 +175,7 @@ func (a *Almue) initializeRouter() {
 			r.Route("/floors", func(r chi.Router) {
 				r.Get("/", a.getAllFloors)
 				r.Post("/", a.createFloor)
-				r.Route("/:floorID", func(r chi.Router) {
+				r.Route("/{floorID:[0-9]+}", func(r chi.Router) {
 					r.Use(a.floorCtx)
 					r.Get("/", a.getFloor)
 					r.Put("/", a.updateFloor)
@@ -183,12 +183,12 @@ func (a *Almue) initializeRouter() {
 					r.Route("/shutters", func(r chi.Router) {
 						r.Get("/", a.getAllShuttersOfFloor)
 						r.Post("/", a.createShutter)
-						r.Route("/:shutterID", func(r chi.Router) {
+						r.Route("/{shutterID:[0-9]+}", func(r chi.Router) {
 							r.Use(a.shutterCtx)
 							r.Get("/", a.getShutter)
 							r.Put("/", a.updateShutter)
 							r.Delete("/", a.deleteShutter)
-							r.Route("/:action", func(r chi.Router) {
+							r.Route("/{action:[a-z]+}", func(r chi.Router) {
 								r.Post("/", a.controlShutter)
 							})
 						})
@@ -196,12 +196,12 @@ func (a *Almue) initializeRouter() {
 					r.Route("/lightings", func(r chi.Router) {
 						r.Get("/", a.getAllLightingsOfFloor)
 						r.Post("/", a.createLighting)
-						r.Route("/:lightingID", func(r chi.Router) {
+						r.Route("/{lightingID:[0-9]+}", func(r chi.Router) {
 							r.Use(a.lightingCtx)
 							r.Get("/", a.getLighting)
 							r.Put("/", a.updateLighting)
 							r.Delete("/", a.deleteLighting)
-							r.Route("/:action", func(r chi.Router) {
+							r.Route("/{action:[a-z]+}", func(r chi.Router) {
 								r.Post("/", a.controlLighting)
 							})
 						})
