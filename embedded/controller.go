@@ -126,6 +126,9 @@ func (d *deviceController) UnregisterShutter(shutterID int64) error {
 }
 
 func (d *deviceController) UpdateShutter(oldShutter, updatedShutter *model.Shutter) error {
+	diffs := oldShutter.GetDifferences(updatedShutter)
+	//TODO: Handle Diffs
+	println(diffs)
 	return errors.New("Not implemented")
 }
 
@@ -173,6 +176,9 @@ func (d *deviceController) UnregisterLighting(lightingID int64) error {
 }
 
 func (d *deviceController) UpdateLighting(oldLighting, updatedLighting *model.Lighting) error {
+	diffs := oldLighting.GetDifferences(updatedLighting)
+	//TODO: Handle Diffs
+	println(diffs)
 	return errors.New("Not implemented")
 }
 
