@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/model"
-	"github.com/pressly/chi/render"
 )
 
 type floorPayload struct {

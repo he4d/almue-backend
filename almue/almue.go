@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/docgen"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/rpi"
 	"github.com/he4d/almue/store"
 )
@@ -154,6 +155,7 @@ func (a *Almue) initializeRouter() {
 	a.router.Use(middleware.RequestID)
 	a.router.Use(middleware.Logger)
 	a.router.Use(middleware.Recoverer)
+	a.router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	// Serve static files
 	workDir, _ := os.Getwd()
