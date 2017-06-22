@@ -1,28 +1,30 @@
 package model
 
-type ModelDifference uint16
+//DifferenceType represents a bitmask with various flags which indicates the
+//differences between two models
+type DifferenceType uint16
 
 const (
-	NONE ModelDifference = 1 << iota
-	//DEVICE SPECIFIC
+	NONE DifferenceType = 1 << iota
 	EMERGENCYENABLED
 	DISABLED
 	JOBSENABLED
-	//SHUTTER SPECIFIC
 	OPENPIN
 	CLOSEPIN
 	COMPLETEWAYINSECONDS
 	OPENTIME
 	CLOSETIME
-	//LIGHTING SPECIFIC
 	SWITCHPIN
 	ONTIME
 	OFFTIME
 )
 
+//HasFlag checks if a ModelDifference bitmask has a specified flag
+func (bitmask DifferenceType) HasFlag(flag DifferenceType) bool { return bitmask&flag != 0 }
+
 //GetDifferences return an DeviceDifference bitmask which holds all the differences between the two shutters
 //See const in model/comparer.go
-func (s1 *Shutter) GetDifferences(s2 *Shutter) ModelDifference {
+func (s1 *Shutter) GetDifferences(s2 *Shutter) DifferenceType {
 	result := NONE
 	if s1.ClosePin != s2.ClosePin {
 		result |= CLOSEPIN
@@ -53,7 +55,7 @@ func (s1 *Shutter) GetDifferences(s2 *Shutter) ModelDifference {
 
 //GetDifferences return an ModelDifferenceType bitmask which holds all the differences between the two shutters
 //See const in model/comparer.go
-func (l1 *Lighting) GetDifferences(l2 *Lighting) ModelDifference {
+func (l1 *Lighting) GetDifferences(l2 *Lighting) DifferenceType {
 	result := NONE
 	if l1.SwitchPin != l2.SwitchPin {
 		result |= SWITCHPIN

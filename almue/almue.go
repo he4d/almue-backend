@@ -110,7 +110,7 @@ func (a *Almue) initializeDeviceController() {
 
 func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *embedded.StateSynchronization) error {
 	if _, ok := a.shutterStates[shutterID]; ok {
-		log.Fatalf("shutter with this id: %d is already registered for state synchronization. Exiting...\n", shutterID)
+		log.Fatalf("shutter with this id: %d is already registered for state synchronization.", shutterID)
 	}
 	a.shutterStates[shutterID] = stateSync
 	go func() {
@@ -130,7 +130,7 @@ func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *
 
 func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync *embedded.StateSynchronization) error {
 	if _, ok := a.lightingStates[lightingID]; ok {
-		log.Fatalf("lighting with this id: %d is already registered for state synchronization. Exiting...\n", lightingID)
+		log.Fatalf("lighting with this id: %d is already registered for state synchronization.", lightingID)
 	}
 	a.lightingStates[lightingID] = stateSync
 	go func() {
