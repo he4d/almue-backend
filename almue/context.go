@@ -25,18 +25,6 @@ func (a *Almue) floorCtx(next http.Handler) http.Handler {
 			http.Error(w, http.StatusText(404), 404)
 			return
 		}
-		numShutters, err := a.store.NumShuttersOfFloor(floorID)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-		floor.NumShutters = numShutters
-		numLightings, err := a.store.NumLightingsOfFloor(floorID)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-		floor.NumLightings = numLightings
 		ctx := context.WithValue(r.Context(), contextKeyFloor, floor)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -5,8 +5,37 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/model"
 )
+
+type lightingPayload struct {
+	*model.Lighting
+}
+
+type lightingListPayload []*lightingPayload
+
+func (l *lightingPayload) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (l *lightingPayload) Bind(r *http.Request) error {
+	return nil
+}
+
+func (a *Almue) newLightingListPayloadResponse(lightings []*model.Lighting) []render.Renderer {
+	list := []render.Renderer{}
+	for _, lighting := range lightings {
+		list = append(list, a.newLightingPayloadResponse(lighting))
+	}
+	return list
+}
+
+func (a *Almue) newLightingPayloadResponse(lighting *model.Lighting) *lightingPayload {
+	resp := &lightingPayload{Lighting: lighting}
+
+	return resp
+}
 
 func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

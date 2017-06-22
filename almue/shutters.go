@@ -5,8 +5,37 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/model"
 )
+
+type shutterPayload struct {
+	*model.Shutter
+}
+
+type shutterListPayload []*shutterPayload
+
+func (s *shutterPayload) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (s *shutterPayload) Bind(r *http.Request) error {
+	return nil
+}
+
+func (a *Almue) newShutterListPayloadResponse(shutters []*model.Shutter) []render.Renderer {
+	list := []render.Renderer{}
+	for _, shutter := range shutters {
+		list = append(list, a.newShutterPayloadResponse(shutter))
+	}
+	return list
+}
+
+func (a *Almue) newShutterPayloadResponse(shutter *model.Shutter) *shutterPayload {
+	resp := &shutterPayload{Shutter: shutter}
+
+	return resp
+}
 
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
