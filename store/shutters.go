@@ -12,7 +12,7 @@ func (d *datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	err := d.QueryRow(shutterByIDStmt, shutterID).Scan(
 		&s.ID, &s.Created, &s.Modified, &s.Description,
 		&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-		&s.TimerEnabled, &s.OpenTime, &s.CloseTime,
+		&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 		&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 		&s.FloorID)
 
@@ -38,7 +38,7 @@ func (d *datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, erro
 		if err := rows.Scan(
 			&s.ID, &s.Created, &s.Modified, &s.Description,
 			&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-			&s.TimerEnabled, &s.OpenTime, &s.CloseTime,
+			&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 			&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 			&s.FloorID); err != nil {
 			return nil, err
@@ -65,7 +65,7 @@ func (d *datastore) GetShutterList() ([]*model.Shutter, error) {
 		if err := rows.Scan(
 			&s.ID, &s.Created, &s.Modified, &s.Description,
 			&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-			&s.TimerEnabled, &s.OpenTime, &s.CloseTime,
+			&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 			&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 			&s.FloorID); err != nil {
 			return nil, err
@@ -80,7 +80,7 @@ func (d *datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	res, err := d.Exec(
 		shutterCreateStmt,
 		s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
-		s.TimerEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
+		s.JobsEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
 		s.DeviceStatus, s.Disabled, s.FloorID)
 	if err != nil {
 		return 0, err
@@ -112,7 +112,7 @@ func (d *datastore) UpdateShutter(s *model.Shutter) error {
 		d.Exec(
 			shutterUpdateStmt,
 			s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
-			s.TimerEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
+			s.JobsEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
 			s.DeviceStatus, s.Disabled, s.ID)
 	return err
 }
@@ -147,7 +147,7 @@ description,
 open_pin,
 close_pin,
 complete_way_in_seconds,
-timer_enabled,
+jobs_enabled,
 open_time,
 close_time,
 emergency_enabled,
@@ -164,7 +164,7 @@ description = ?,
 open_pin = ?,
 close_pin = ?,
 complete_way_in_seconds = ?,
-timer_enabled = ?,
+jobs_enabled = ?,
 open_time = ?,
 close_time = ?,
 emergency_enabled = ?,

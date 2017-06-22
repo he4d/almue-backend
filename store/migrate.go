@@ -110,6 +110,7 @@ description varchar(255) NOT NULL UNIQUE
 )
 `
 
+//TODO: The pins must be unique merged (open_pin and close_pin)
 var createTableShutters = `
 CREATE TABLE IF NOT EXISTS shutters (
 id integer primary key autoincrement,
@@ -119,7 +120,7 @@ description varchar(255),
 open_pin integer NOT NULL UNIQUE,
 close_pin integer NOT NULL UNIQUE,
 complete_way_in_seconds integer NOT NULL,
-timer_enabled bool,
+jobs_enabled bool,
 open_time datetime DEFAULT current_timestamp,
 close_time datetime DEFAULT current_timestamp,
 emergency_enabled bool,
@@ -129,6 +130,7 @@ floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE
 )
 `
 
+//TODO: The pins must be unique merged with shutters (open_pin and close_pin)
 var createTableLightings = `
 CREATE TABLE IF NOT EXISTS lightings (
 id integer primary key autoincrement,
@@ -136,7 +138,7 @@ created datetime NOT NULL DEFAULT current_timestamp,
 modified datetime NOT NULL DEFAULT current_timestamp,
 description varchar(255),
 switch_pin integer NOT NULL UNIQUE,
-timer_enabled bool,
+jobs_enabled bool,
 on_time datetime DEFAULT current_timestamp,
 off_time datetime DEFAULT current_timestamp,
 emergency_enabled bool,

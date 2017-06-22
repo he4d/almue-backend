@@ -23,7 +23,6 @@ func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
 	if err := render.RenderList(w, r, a.newLightingListPayloadResponse(lightings)); err != nil {
 		render.Render(w, r, ErrRender(err))
 	}
-	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getAllLightings(w http.ResponseWriter, r *http.Request) {
@@ -36,15 +35,13 @@ func (a *Almue) getAllLightings(w http.ResponseWriter, r *http.Request) {
 	if err := render.RenderList(w, r, a.newLightingListPayloadResponse(lightings)); err != nil {
 		render.Render(w, r, ErrRender(err))
 	}
-	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newLightingPayloadResponse(lighting)) //TODO: Check err
+	render.Render(w, r, a.newLightingPayloadResponse(lighting))
 }
 
 func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
@@ -79,29 +76,31 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, a.newLightingPayloadResponse(l)) //TODO: Check err
+	render.Render(w, r, a.newLightingPayloadResponse(l))
 }
 
 func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	oldLighting := ctx.Value(lightingCtxKey).(*model.Lighting)
 
-	l := &lightingPayload{Lighting: lighting}
+	l := &lightingPayload{Lighting: oldLighting}
 	if err := render.Bind(r, l); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	lighting = l.Lighting
+	updatedLighting := l.Lighting
 
-	if err := a.store.UpdateLighting(lighting); err != nil {
+	if err := a.store.UpdateLighting(updatedLighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	//TODO: update a.devices
+	if err := a.deviceController.UpdateLighting(oldLighting, updatedLighting); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newLightingPayloadResponse(lighting)) //TODO: Check err
+	render.Render(w, r, a.newLightingPayloadResponse(updatedLighting))
 }
 
 func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
@@ -143,5 +142,5 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidRequest(errors.New("Action not supported")))
 		return
 	}
-	render.Status(r, http.StatusOK)
+	render.NoContent(w, r)
 }

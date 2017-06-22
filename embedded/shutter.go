@@ -1,4 +1,4 @@
-package rpi
+package embedded
 
 import (
 	"time"

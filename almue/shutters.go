@@ -29,7 +29,6 @@ func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
 	if err := render.RenderList(w, r, a.newShutterListPayloadResponse(shutters)); err != nil {
 		render.Render(w, r, ErrRender(err))
 	}
-	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getAllShutters(w http.ResponseWriter, r *http.Request) {
@@ -42,15 +41,13 @@ func (a *Almue) getAllShutters(w http.ResponseWriter, r *http.Request) {
 	if err := render.RenderList(w, r, a.newShutterListPayloadResponse(shutters)); err != nil {
 		render.Render(w, r, ErrRender(err))
 	}
-	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) getShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newShutterPayloadResponse(shutter)) //TODO: Check err
+	render.Render(w, r, a.newShutterPayloadResponse(shutter))
 }
 
 func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
@@ -85,29 +82,31 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, a.newShutterPayloadResponse(s)) //TODO: Check err
+	render.Render(w, r, a.newShutterPayloadResponse(s))
 }
 
 func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	oldShutter := ctx.Value(shutterCtxKey).(*model.Shutter)
 
-	s := &shutterPayload{Shutter: shutter}
+	s := &shutterPayload{Shutter: oldShutter}
 	if err := render.Bind(r, s); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	shutter = s.Shutter
+	updatedShutter := s.Shutter
 
-	if err := a.store.UpdateShutter(shutter); err != nil {
+	if err := a.store.UpdateShutter(updatedShutter); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	//TODO: update a.devices
+	if err := a.deviceController.UpdateShutter(oldShutter, updatedShutter); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
 
-	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newShutterPayloadResponse(shutter)) //TODO: Check err
+	render.Render(w, r, a.newShutterPayloadResponse(updatedShutter))
 }
 
 func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
@@ -159,5 +158,5 @@ func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidRequest(errors.New("Action not supported")))
 		return
 	}
-	render.Status(r, http.StatusOK)
+	render.NoContent(w, r)
 }

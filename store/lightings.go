@@ -21,7 +21,7 @@ func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, er
 		l := new(model.Lighting)
 		if err := rows.Scan(
 			&l.ID, &l.Created, &l.Modified, &l.Description,
-			&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+			&l.SwitchPin, &l.JobsEnabled, &l.OnTime, &l.OffTime,
 			&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
 			&l.FloorID); err != nil {
 			return nil, err
@@ -47,7 +47,7 @@ func (d *datastore) GetLightingList() ([]*model.Lighting, error) {
 		l := new(model.Lighting)
 		if err := rows.Scan(
 			&l.ID, &l.Created, &l.Modified, &l.Description,
-			&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+			&l.SwitchPin, &l.JobsEnabled, &l.OnTime, &l.OffTime,
 			&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
 			&l.FloorID); err != nil {
 			return nil, err
@@ -61,7 +61,7 @@ func (d *datastore) GetLightingList() ([]*model.Lighting, error) {
 func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	res, err := d.Exec(
 		lightingCreateStmt,
-		l.Description, l.SwitchPin, l.TimerEnabled,
+		l.Description, l.SwitchPin, l.JobsEnabled,
 		l.OnTime, l.OffTime, l.EmergencyEnabled,
 		l.DeviceStatus, l.Disabled, l.FloorID)
 
@@ -95,7 +95,7 @@ func (d *datastore) UpdateLighting(l *model.Lighting) error {
 		d.Exec(
 			lightingUpdateStmt,
 			l.Description, l.SwitchPin,
-			l.TimerEnabled, l.OnTime, l.OffTime, l.EmergencyEnabled,
+			l.JobsEnabled, l.OnTime, l.OffTime, l.EmergencyEnabled,
 			l.DeviceStatus, l.Disabled, l.ID)
 	return err
 }
@@ -111,7 +111,7 @@ func (d *datastore) GetLighting(lightingID int64) (*model.Lighting, error) {
 
 	err := d.QueryRow(lightingByIDStmt, lightingID).Scan(
 		&l.ID, &l.Created, &l.Modified, &l.Description,
-		&l.SwitchPin, &l.TimerEnabled, &l.OnTime, &l.OffTime,
+		&l.SwitchPin, &l.JobsEnabled, &l.OnTime, &l.OffTime,
 		&l.EmergencyEnabled, &l.DeviceStatus, &l.Disabled,
 		&l.FloorID)
 
@@ -143,7 +143,7 @@ var lightingCreateStmt = `
 INSERT INTO lightings(
 description,
 switch_pin,
-timer_enabled,
+jobs_enabled,
 on_time,
 off_time,
 emergency_enabled,
@@ -158,7 +158,7 @@ var lightingUpdateStmt = `
 UPDATE lightings SET 
 description = ?,
 switch_pin = ?,
-timer_enabled = ?,
+jobs_enabled = ?,
 on_time = ?,
 off_time = ?,
 emergency_enabled = ?,

@@ -1,4 +1,4 @@
-package rpi
+package embedded
 
 import "periph.io/x/periph/conn/gpio"
 import "github.com/carlescere/scheduler"

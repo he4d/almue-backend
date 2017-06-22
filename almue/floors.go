@@ -17,7 +17,6 @@ func (a *Almue) getAllFloors(w http.ResponseWriter, r *http.Request) {
 	if err := render.RenderList(w, r, a.newFloorListPayloadResponse(floors)); err != nil {
 		render.Render(w, r, ErrRender(err))
 	}
-	render.Status(r, http.StatusOK)
 }
 
 func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +36,7 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 	floor.ID = id
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, a.newFloorPayloadResponse(floor)) //TODO: Check err
+	render.Render(w, r, a.newFloorPayloadResponse(floor))
 }
 
 func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +49,6 @@ func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//TODO: hier muss weiter gearbeitet werden!!
 func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	oldFloor := ctx.Value(floorCtxKey).(*model.Floor)
@@ -69,7 +67,7 @@ func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Render(w, r, a.newFloorPayloadResponse(f)) //TODO: Check err
+	render.Render(w, r, a.newFloorPayloadResponse(f))
 }
 
 func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {

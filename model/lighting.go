@@ -9,7 +9,7 @@ type Lighting struct {
 	Base
 	Description      *string   `json:"description"`
 	SwitchPin        *int      `json:"switchPin"`
-	TimerEnabled     bool      `json:"timerEnabled"`
+	JobsEnabled      bool      `json:"jobsEnabled"`
 	OnTime           time.Time `json:"onTime"`
 	OffTime          time.Time `json:"offTime"`
 	EmergencyEnabled bool      `json:"emergencyEnabled"`

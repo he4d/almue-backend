@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/docgen"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/render"
-	"github.com/he4d/almue/rpi"
+	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/store"
 )
 
@@ -19,9 +19,9 @@ import (
 type Almue struct {
 	router           chi.Router
 	store            store.Store
-	deviceController rpi.DeviceController
-	shutterStates    map[int64]*rpi.StateSynchronization
-	lightingStates   map[int64]*rpi.StateSynchronization
+	deviceController embedded.DeviceController
+	shutterStates    map[int64]*embedded.StateSynchronization
+	lightingStates   map[int64]*embedded.StateSynchronization
 	simulate         bool
 	dbPath           string
 }
@@ -64,9 +64,9 @@ func (a *Almue) initializeDatabase() {
 }
 
 func (a *Almue) initializeDeviceController() {
-	a.deviceController = rpi.New(a.simulate)
-	a.shutterStates = make(map[int64]*rpi.StateSynchronization)
-	a.lightingStates = make(map[int64]*rpi.StateSynchronization)
+	a.deviceController = embedded.New(a.simulate)
+	a.shutterStates = make(map[int64]*embedded.StateSynchronization)
+	a.lightingStates = make(map[int64]*embedded.StateSynchronization)
 
 	// Register all shutters
 	allShutters, err := a.store.GetShutterList()
@@ -108,7 +108,7 @@ func (a *Almue) initializeDeviceController() {
 	}
 }
 
-func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *rpi.StateSynchronization) error {
+func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *embedded.StateSynchronization) error {
 	if _, ok := a.shutterStates[shutterID]; ok {
 		log.Fatalf("shutter with this id: %d is already registered for state synchronization. Exiting...\n", shutterID)
 	}
@@ -128,7 +128,7 @@ func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *
 	return nil
 }
 
-func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync *rpi.StateSynchronization) error {
+func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync *embedded.StateSynchronization) error {
 	if _, ok := a.lightingStates[lightingID]; ok {
 		log.Fatalf("lighting with this id: %d is already registered for state synchronization. Exiting...\n", lightingID)
 	}
