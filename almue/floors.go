@@ -83,6 +83,5 @@ func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Status(r, http.StatusNoContent)
-	render.Render(w, r, a.newNoContentPayloadResponse()) //TODO: Check err
+	render.NoContent(w, r)
 }

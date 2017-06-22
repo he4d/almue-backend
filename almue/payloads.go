@@ -7,17 +7,6 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-//-- NO CONTENT PAYLOAD --//
-type noContentPayload struct{}
-
-func (n *noContentPayload) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func (a *Almue) newNoContentPayloadResponse() *noContentPayload {
-	return &noContentPayload{}
-}
-
 //-- FLOOR PAYLOAD --//
 
 type floorPayload struct {

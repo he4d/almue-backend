@@ -128,8 +128,7 @@ func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Status(r, http.StatusNoContent)
-	render.Render(w, r, a.newNoContentPayloadResponse()) //TODO: Check err
+	render.NoContent(w, r)
 }
 
 func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
@@ -161,5 +160,4 @@ func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newNoContentPayloadResponse())
 }

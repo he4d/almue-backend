@@ -118,8 +118,7 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.Status(r, http.StatusNoContent)
-	render.Render(w, r, a.newNoContentPayloadResponse()) //TODO: Check err
+	render.NoContent(w, r)
 }
 
 func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
@@ -145,5 +144,4 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.Status(r, http.StatusOK)
-	render.Render(w, r, a.newNoContentPayloadResponse())
 }
