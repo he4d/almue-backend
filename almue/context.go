@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/pressly/chi"
+	"github.com/go-chi/chi"
 )
 
 type contextKey string

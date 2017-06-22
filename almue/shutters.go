@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi"
 	"github.com/he4d/almue/model"
-	"github.com/pressly/chi"
 )
 
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
