@@ -20,8 +20,6 @@ type Almue struct {
 	router           chi.Router
 	store            store.Store
 	deviceController embedded.DeviceController
-	shutterStates    map[int64]*embedded.StateSynchronization
-	lightingStates   map[int64]*embedded.StateSynchronization
 	simulate         bool
 	dbPath           string
 }
@@ -65,87 +63,67 @@ func (a *Almue) initializeDatabase() {
 
 func (a *Almue) initializeDeviceController() {
 	a.deviceController = embedded.New(a.simulate)
-	a.shutterStates = make(map[int64]*embedded.StateSynchronization)
-	a.lightingStates = make(map[int64]*embedded.StateSynchronization)
 
 	// Register all shutters
 	allShutters, err := a.store.GetShutterList()
 	if err != nil {
-		log.Println(err)
-		log.Fatalln("initializeDeviceController failed")
+		log.Fatalf("initializeDeviceController failed %s", err)
 	}
 
-	shutterStates, err := a.deviceController.RegisterShutters(allShutters...)
-	if err != nil {
-		log.Println(err)
-		log.Fatalln("could not register shutters")
+	if err := a.deviceController.RegisterShutters(allShutters...); err != nil {
+		log.Fatalf("could not register shutters %s", err)
 	}
 
-	for id, state := range shutterStates {
-		if err := a.registerShutterStateSynchronization(id, state); err != nil {
-			log.Println(err)
-			log.Fatalln("registering shutterStateSynchronization failed")
+	for _, shutter := range allShutters {
+		syncState, err := a.deviceController.GetShutterStateSyncChannels(shutter.ID)
+		if err != nil {
+			log.Fatalf("could not get shutterStateSync: %s", err)
 		}
+		go a.startObserveShutterState(shutter.ID, syncState)
 	}
 
 	// Register all lightings
 	allLightings, err := a.store.GetLightingList()
 	if err != nil {
-		log.Println(err)
-		log.Fatalln("initializeDeviceController failed")
+		log.Fatalf("initializeDeviceController failed %s", err)
 	}
-	lightingStates, err := a.deviceController.RegisterLightings(allLightings...)
-	if err != nil {
-		log.Println(err)
-		log.Fatalln("could not register lightings")
+	if err := a.deviceController.RegisterLightings(allLightings...); err != nil {
+		log.Fatalf("could not register lightings %s", err)
 	}
 
-	for id, state := range lightingStates {
-		if err := a.registerLightingStateSynchronization(id, state); err != nil {
-			log.Println(err)
-			log.Fatalln("registering lightingStateSynchronization failed")
+	for _, lighting := range allLightings {
+		syncState, err := a.deviceController.GetLightingStateSyncChannels(lighting.ID)
+		if err != nil {
+			log.Fatalf("could not get lightingStateSync: %s", err)
+		}
+		go a.startObserveLightingState(lighting.ID, syncState)
+	}
+}
+
+func (a *Almue) startObserveShutterState(shutterID int64, stateSync *embedded.StateSyncChannels) error {
+	for {
+		select {
+		case newState := <-stateSync.State:
+			if err := a.store.UpdateShutterState(shutterID, newState); err != nil {
+				//TODO: errorhandling
+			}
+		case <-stateSync.Quit:
+			return nil
 		}
 	}
 }
 
-func (a *Almue) registerShutterStateSynchronization(shutterID int64, stateSync *embedded.StateSynchronization) error {
-	if _, ok := a.shutterStates[shutterID]; ok {
-		log.Fatalf("shutter with this id: %d is already registered for state synchronization.", shutterID)
-	}
-	a.shutterStates[shutterID] = stateSync
-	go func() {
-		for {
-			select {
-			case newState := <-stateSync.State:
-				if err := a.store.UpdateShutterState(shutterID, newState); err != nil {
-					//TODO: errorhandling
-				}
-			case <-stateSync.Quit:
-				return
+func (a *Almue) startObserveLightingState(lightingID int64, stateSync *embedded.StateSyncChannels) error {
+	for {
+		select {
+		case newState := <-stateSync.State:
+			if err := a.store.UpdateLightingState(lightingID, newState); err != nil {
+				//TODO: errorhandling
 			}
+		case <-stateSync.Quit:
+			return nil
 		}
-	}()
-	return nil
-}
-
-func (a *Almue) registerLightingStateSynchronization(lightingID int64, stateSync *embedded.StateSynchronization) error {
-	if _, ok := a.lightingStates[lightingID]; ok {
-		log.Fatalf("lighting with this id: %d is already registered for state synchronization.", lightingID)
 	}
-	a.lightingStates[lightingID] = stateSync
-	go func() {
-		for {
-			select {
-			case newState := <-stateSync.State:
-				if err := a.store.UpdateLightingState(lightingID, newState); err != nil {
-					//TODO: errorhandling
-				}
-			case <-stateSync.Quit:
-				return
-			}
-		}
-	}()
-	return nil
 }
 
 func (a *Almue) initializeRouter() {

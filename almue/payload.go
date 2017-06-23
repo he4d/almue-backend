@@ -37,7 +37,7 @@ func (a *Almue) newFloorPayloadResponse(floor *model.Floor) *floorPayload {
 	resp := &floorPayload{Floor: floor}
 
 	if resp.Shutters == nil {
-		if shutters, _ := a.store.GetShutterList(); shutters != nil {
+		if shutters, _ := a.store.GetShutterListOfFloor(floor.ID); shutters != nil {
 			resp.Shutters = shutterListPayload{}
 			for _, shutter := range shutters {
 				resp.Shutters = append(resp.Shutters, a.newShutterPayloadResponse(shutter))
@@ -46,7 +46,7 @@ func (a *Almue) newFloorPayloadResponse(floor *model.Floor) *floorPayload {
 	}
 
 	if resp.Lightings == nil {
-		if lightings, _ := a.store.GetLightingList(); lightings != nil {
+		if lightings, _ := a.store.GetLightingListOfFloor(floor.ID); lightings != nil {
 			resp.Lightings = lightingListPayload{}
 			for _, lighting := range lightings {
 				resp.Lightings = append(resp.Lightings, a.newLightingPayloadResponse(lighting))

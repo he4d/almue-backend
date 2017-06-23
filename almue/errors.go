@@ -24,11 +24,13 @@ type ErrResponse struct {
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
 }
 
+//Render renders an error response
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, e.HTTPStatusCode)
 	return nil
 }
 
+//ErrInvalidRequest returns a 400 renderer
 func ErrInvalidRequest(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -38,6 +40,7 @@ func ErrInvalidRequest(err error) render.Renderer {
 	}
 }
 
+//ErrInternalServer returns a 500 renderer
 func ErrInternalServer(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -47,6 +50,7 @@ func ErrInternalServer(err error) render.Renderer {
 	}
 }
 
+//ErrRender returns a 422 renderer
 func ErrRender(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -56,4 +60,5 @@ func ErrRender(err error) render.Renderer {
 	}
 }
 
+//ErrNotFound returns a 404 renderer
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}

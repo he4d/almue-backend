@@ -63,23 +63,30 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	s.FloorID = floor.ID
 
-	newID, err := a.store.CreateShutter(s)
-	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
-		return
-	}
-	s.ID = newID
-
-	shutterState, err := a.deviceController.RegisterShutters(s)
+	var err error
+	s.ID, err = a.store.CreateShutter(s)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	if err = a.registerShutterStateSynchronization(newID, shutterState[newID]); err != nil {
+	s, err = a.store.GetShutter(s.ID)
+	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
+
+	if err := a.deviceController.RegisterShutters(s); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
+	stateSync, err := a.deviceController.GetShutterStateSyncChannels(s.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+	}
+
+	go a.startObserveShutterState(s.ID, stateSync)
 
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, a.newShutterPayloadResponse(s))
@@ -94,9 +101,14 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	updatedShutter := s.Shutter
 
-	if err := a.store.UpdateShutter(updatedShutter); err != nil {
+	if err := a.store.UpdateShutter(s.Shutter); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
+	updatedShutter, err := a.store.GetShutter(s.Shutter.ID)
+	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}

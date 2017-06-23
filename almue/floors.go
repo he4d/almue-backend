@@ -26,14 +26,18 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := a.store.CreateFloor(f.Floor)
+	var err error
+	f.ID, err = a.store.CreateFloor(f.Floor)
 	if err != nil {
 		render.Render(w, r, ErrRender(err))
 		return
 	}
 
-	floor := f.Floor
-	floor.ID = id
+	floor, err := a.store.GetFloor(f.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
 
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, a.newFloorPayloadResponse(floor))
@@ -67,6 +71,12 @@ func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	f, err := a.store.GetFloor(f.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
 	render.Render(w, r, a.newFloorPayloadResponse(f))
 }
 
@@ -74,7 +84,29 @@ func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	floor := ctx.Value(floorCtxKey).(*model.Floor)
 
-	//TODO: update a.devices (delete related devices)
+	shutters, err := a.store.GetShutterListOfFloor(floor.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+	for _, shutter := range shutters {
+		if err := a.deviceController.UnregisterShutter(shutter.ID); err != nil {
+			render.Render(w, r, ErrInternalServer(err))
+			return
+		}
+	}
+
+	lightings, err := a.store.GetLightingListOfFloor(floor.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+	for _, lighting := range lightings {
+		if err := a.deviceController.UnregisterLighting(lighting.ID); err != nil {
+			render.Render(w, r, ErrInternalServer(err))
+			return
+		}
+	}
 
 	if err := a.store.DeleteFloor(floor.ID); err != nil {
 		render.Render(w, r, ErrInternalServer(err))

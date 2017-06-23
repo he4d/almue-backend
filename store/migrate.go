@@ -110,7 +110,7 @@ description varchar(255) NOT NULL UNIQUE
 )
 `
 
-//TODO: The pins must be unique merged (open_pin and close_pin)
+//TODO: The pins must be unique merged (open_pin and close_pin) TABLE FOR PINS!!
 var createTableShutters = `
 CREATE TABLE IF NOT EXISTS shutters (
 id integer primary key autoincrement,

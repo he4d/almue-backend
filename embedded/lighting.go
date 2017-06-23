@@ -8,6 +8,5 @@ type lighting struct {
 	switchPin gpio.PinIO
 	onJob     *scheduler.Job
 	offJob    *scheduler.Job
-	state     chan string
-	quit      chan bool
+	stateSync *StateSyncChannels
 }

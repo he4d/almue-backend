@@ -57,23 +57,31 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	l.FloorID = floor.ID
 
-	newID, err := a.store.CreateLighting(l)
-	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
-		return
-	}
-	l.ID = newID
-
-	lightingState, err := a.deviceController.RegisterLightings(l)
+	var err error
+	l.ID, err = a.store.CreateLighting(l)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	if err = a.registerLightingStateSynchronization(newID, lightingState[newID]); err != nil {
+	l, err = a.store.GetLighting(l.ID)
+	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
+
+	if err := a.deviceController.RegisterLightings(l); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
+	syncState, err := a.deviceController.GetLightingStateSyncChannels(l.ID)
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
+	go a.startObserveLightingState(l.ID, syncState)
 
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, a.newLightingPayloadResponse(l))
@@ -88,9 +96,14 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	updatedLighting := l.Lighting
 
-	if err := a.store.UpdateLighting(updatedLighting); err != nil {
+	if err := a.store.UpdateLighting(l.Lighting); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+
+	updatedLighting, err := a.store.GetLighting(l.Lighting.ID)
+	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
