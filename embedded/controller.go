@@ -27,13 +27,13 @@ type DeviceController interface {
 
 	UnregisterShutter(shutterID int64) error
 
-	UpdateShutter(oldShutter, updatedShutter *model.Shutter) error
+	UpdateShutter(diffs model.DifferenceType, updatedShutter *model.Shutter) error
 
 	RegisterLightings(lightings ...*model.Lighting) error
 
 	UnregisterLighting(lightingID int64) error
 
-	UpdateLighting(oldLighting, updatedLighting *model.Lighting) error
+	UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error
 
 	OpenShutter(shutterID int64) error
 
@@ -143,11 +143,51 @@ func (d *deviceController) UnregisterShutter(shutterID int64) error {
 	return nil
 }
 
-func (d *deviceController) UpdateShutter(oldShutter, updatedShutter *model.Shutter) error {
-	diffs := oldShutter.GetDifferences(updatedShutter)
-	//TODO: Handle Diffs
-	println(diffs)
-	return errors.New("Not implemented")
+func (d *deviceController) UpdateShutter(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+	if diffs.HasFlag(model.DIFFNONE) {
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFEMERGENCYENABLED) {
+		//TODO: Emergencydevices...
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFDISABLED) {
+		if updatedShutter.Disabled {
+			d.UnregisterShutter(updatedShutter.ID)
+			return nil
+		}
+		d.RegisterShutters(updatedShutter)
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFJOBSENABLED) {
+		if updatedShutter.JobsEnabled {
+			if err := d.ScheduleShutterJobs(updatedShutter); err != nil {
+				return err
+			}
+		} else {
+			if err := d.UnscheduleShutterJobs(updatedShutter.ID); err != nil {
+				return err
+			}
+		}
+	}
+	if diffs.HasFlag(model.DIFFOPENPIN) || diffs.HasFlag(model.DIFFCLOSEPIN) {
+		if err := d.changeShutterPins(diffs, updatedShutter); err != nil {
+			return err
+		}
+	}
+	if diffs.HasFlag(model.DIFFCOMPLETEWAYINSECONDS) {
+		shutter, err := d.getShutterByID(updatedShutter.ID)
+		if err != nil {
+			return err
+		}
+		shutter.completeWayDuration = time.Duration(*updatedShutter.CompleteWayInSeconds) * time.Second
+	}
+	if diffs.HasFlag(model.DIFFOPENTIME) || diffs.HasFlag(model.DIFFCLOSETIME) {
+		if err := d.rescheduleShutterJobs(updatedShutter); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) error {
@@ -191,11 +231,44 @@ func (d *deviceController) UnregisterLighting(lightingID int64) error {
 	return nil
 }
 
-func (d *deviceController) UpdateLighting(oldLighting, updatedLighting *model.Lighting) error {
-	diffs := oldLighting.GetDifferences(updatedLighting)
-	//TODO: Handle Diffs
-	println(diffs)
-	return errors.New("Not implemented")
+func (d *deviceController) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+	if diffs.HasFlag(model.DIFFNONE) {
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFEMERGENCYENABLED) {
+		//TODO: Emergencydevices...
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFDISABLED) {
+		if updatedLighting.Disabled {
+			d.UnregisterLighting(updatedLighting.ID)
+			return nil
+		}
+		d.RegisterLightings(updatedLighting)
+		return nil
+	}
+	if diffs.HasFlag(model.DIFFJOBSENABLED) {
+		if updatedLighting.JobsEnabled {
+			if err := d.ScheduleLightingJobs(updatedLighting); err != nil {
+				return err
+			}
+		} else {
+			if err := d.UnscheduleLightingJobs(updatedLighting.ID); err != nil {
+				return err
+			}
+		}
+	}
+	if diffs.HasFlag(model.DIFFSWITCHPIN) {
+		if err := d.changeLightingPin(diffs, updatedLighting); err != nil {
+			return err
+		}
+	}
+	if diffs.HasFlag(model.DIFFONTIME) || diffs.HasFlag(model.DIFFOFFTIME) {
+		if err := d.rescheduleLightingJobs(updatedLighting); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (d *deviceController) OpenShutter(shutterID int64) error {
@@ -297,7 +370,7 @@ func (d *deviceController) TurnLightingOff(lightingID int64) error {
 }
 
 func (d *deviceController) ScheduleShutterJobs(shutter *model.Shutter) error {
-	device, err := d.getShutterByModel(shutter)
+	device, err := d.getShutterByID(shutter.ID)
 	if err != nil {
 		return err
 	}
@@ -331,7 +404,7 @@ func (d *deviceController) UnscheduleShutterJobs(shutterID int64) error {
 }
 
 func (d *deviceController) ScheduleLightingJobs(lighting *model.Lighting) error {
-	device, err := d.getLightingByModel(lighting)
+	device, err := d.getLightingByID(lighting.ID)
 	if err != nil {
 		return err
 	}
@@ -364,6 +437,34 @@ func (d *deviceController) UnscheduleLightingJobs(lightingID int64) error {
 	return nil
 }
 
+func (d *deviceController) changeShutterPins(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+	return nil
+}
+
+func (d *deviceController) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+	return nil
+}
+
+func (d *deviceController) rescheduleShutterJobs(shutter *model.Shutter) error {
+	if err := d.UnscheduleShutterJobs(shutter.ID); err != nil {
+		return err
+	}
+	if err := d.ScheduleShutterJobs(shutter); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *deviceController) rescheduleLightingJobs(lighting *model.Lighting) error {
+	if err := d.UnscheduleLightingJobs(lighting.ID); err != nil {
+		return err
+	}
+	if err := d.ScheduleLightingJobs(lighting); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *deviceController) getShutterByID(shutterID int64) (*shutter, error) {
 	device, ok := d.shutters[shutterID]
 	if !ok {
@@ -372,26 +473,10 @@ func (d *deviceController) getShutterByID(shutterID int64) (*shutter, error) {
 	return device, nil
 }
 
-func (d *deviceController) getShutterByModel(shutter *model.Shutter) (*shutter, error) {
-	device, ok := d.shutters[shutter.ID]
-	if !ok {
-		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", shutter.ID)
-	}
-	return device, nil
-}
-
 func (d *deviceController) getLightingByID(lightingID int64) (*lighting, error) {
 	device, ok := d.lightings[lightingID]
 	if !ok {
 		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", lightingID)
-	}
-	return device, nil
-}
-
-func (d *deviceController) getLightingByModel(lighting *model.Lighting) (*lighting, error) {
-	device, ok := d.lightings[lighting.ID]
-	if !ok {
-		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", lighting.ID)
 	}
 	return device, nil
 }

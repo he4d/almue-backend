@@ -108,7 +108,8 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.deviceController.UpdateLighting(oldLighting, updatedLighting); err != nil {
+	diffs := oldLighting.GetDifferences(updatedLighting)
+	if err := a.deviceController.UpdateLighting(diffs, updatedLighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}

@@ -113,7 +113,8 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.deviceController.UpdateShutter(oldShutter, updatedShutter); err != nil {
+	diffs := oldShutter.GetDifferences(updatedShutter)
+	if err := a.deviceController.UpdateShutter(diffs, updatedShutter); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}

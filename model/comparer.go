@@ -5,18 +5,18 @@ package model
 type DifferenceType uint16
 
 const (
-	NONE DifferenceType = 1 << iota
-	EMERGENCYENABLED
-	DISABLED
-	JOBSENABLED
-	OPENPIN
-	CLOSEPIN
-	COMPLETEWAYINSECONDS
-	OPENTIME
-	CLOSETIME
-	SWITCHPIN
-	ONTIME
-	OFFTIME
+	DIFFNONE DifferenceType = 1 << iota
+	DIFFEMERGENCYENABLED
+	DIFFDISABLED
+	DIFFJOBSENABLED
+	DIFFOPENPIN
+	DIFFCLOSEPIN
+	DIFFCOMPLETEWAYINSECONDS
+	DIFFOPENTIME
+	DIFFCLOSETIME
+	DIFFSWITCHPIN
+	DIFFONTIME
+	DIFFOFFTIME
 )
 
 //HasFlag checks if a ModelDifference bitmask has a specified flag
@@ -25,30 +25,30 @@ func (bitmask DifferenceType) HasFlag(flag DifferenceType) bool { return bitmask
 //GetDifferences return an DeviceDifference bitmask which holds all the differences between the two shutters
 //See const in model/comparer.go
 func (s1 *Shutter) GetDifferences(s2 *Shutter) DifferenceType {
-	result := NONE
+	result := DIFFNONE
 	if s1.ClosePin != s2.ClosePin {
-		result |= CLOSEPIN
+		result |= DIFFCLOSEPIN
 	}
 	if s1.OpenPin != s2.OpenPin {
-		result |= OPENPIN
+		result |= DIFFOPENPIN
 	}
 	if s1.CompleteWayInSeconds != s2.CompleteWayInSeconds {
-		result |= COMPLETEWAYINSECONDS
+		result |= DIFFCOMPLETEWAYINSECONDS
 	}
 	if s1.JobsEnabled != s2.JobsEnabled {
-		result |= JOBSENABLED
+		result |= DIFFJOBSENABLED
 	}
 	if s1.OpenTime != s2.OpenTime {
-		result |= OPENTIME
+		result |= DIFFOPENTIME
 	}
 	if s1.CloseTime != s2.CloseTime {
-		result |= CLOSETIME
+		result |= DIFFCLOSETIME
 	}
 	if s1.EmergencyEnabled != s2.EmergencyEnabled {
-		result |= EMERGENCYENABLED
+		result |= DIFFEMERGENCYENABLED
 	}
 	if s1.Disabled != s2.Disabled {
-		result |= DISABLED
+		result |= DIFFDISABLED
 	}
 	return result
 }
@@ -56,24 +56,24 @@ func (s1 *Shutter) GetDifferences(s2 *Shutter) DifferenceType {
 //GetDifferences return an ModelDifferenceType bitmask which holds all the differences between the two shutters
 //See const in model/comparer.go
 func (l1 *Lighting) GetDifferences(l2 *Lighting) DifferenceType {
-	result := NONE
+	result := DIFFNONE
 	if l1.SwitchPin != l2.SwitchPin {
-		result |= SWITCHPIN
+		result |= DIFFSWITCHPIN
 	}
 	if l1.JobsEnabled != l2.JobsEnabled {
-		result |= JOBSENABLED
+		result |= DIFFJOBSENABLED
 	}
 	if l1.OnTime != l2.OnTime {
-		result |= OPENTIME
+		result |= DIFFOPENTIME
 	}
 	if l1.OffTime != l2.OffTime {
-		result |= CLOSETIME
+		result |= DIFFCLOSETIME
 	}
 	if l1.EmergencyEnabled != l2.EmergencyEnabled {
-		result |= EMERGENCYENABLED
+		result |= DIFFEMERGENCYENABLED
 	}
 	if l1.Disabled != l2.Disabled {
-		result |= DISABLED
+		result |= DIFFDISABLED
 	}
 	return result
 }
