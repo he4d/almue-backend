@@ -89,9 +89,10 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	oldLighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	oldLighting := lighting.DeepCopy()
 
-	l := &lightingPayload{Lighting: oldLighting}
+	l := &lightingPayload{Lighting: lighting}
 	if err := render.Bind(r, l); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return

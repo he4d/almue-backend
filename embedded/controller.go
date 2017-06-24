@@ -132,6 +132,10 @@ func (d *deviceController) UnregisterShutter(shutterID int64) error {
 		return fmt.Errorf("Shutter with id: %d cannot be unregistered, because it doesnt exist", shutterID)
 	}
 
+	if err := d.StopShutter(shutterID); err != nil {
+		return err
+	}
+
 	if err := d.UnscheduleShutterJobs(shutterID); err != nil {
 		return err
 	}
@@ -144,7 +148,7 @@ func (d *deviceController) UnregisterShutter(shutterID int64) error {
 }
 
 func (d *deviceController) UpdateShutter(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
-	if diffs.HasFlag(model.DIFFNONE) {
+	if diffs == model.DIFFNONE {
 		return nil
 	}
 	if diffs.HasFlag(model.DIFFEMERGENCYENABLED) {
@@ -180,6 +184,7 @@ func (d *deviceController) UpdateShutter(diffs model.DifferenceType, updatedShut
 		if err != nil {
 			return err
 		}
+		d.StopShutter(updatedShutter.ID)
 		shutter.completeWayDuration = time.Duration(*updatedShutter.CompleteWayInSeconds) * time.Second
 	}
 	if diffs.HasFlag(model.DIFFOPENTIME) || diffs.HasFlag(model.DIFFCLOSETIME) {
@@ -220,6 +225,9 @@ func (d *deviceController) UnregisterLighting(lightingID int64) error {
 	if !ok {
 		return fmt.Errorf("Lighting with id: %d cannot be unregistered, because it doesnt exist", lightingID)
 	}
+	if err := d.TurnLightingOff(lightingID); err != nil {
+		return err
+	}
 	if err := d.UnscheduleLightingJobs(lightingID); err != nil {
 		return err
 	}
@@ -232,7 +240,7 @@ func (d *deviceController) UnregisterLighting(lightingID int64) error {
 }
 
 func (d *deviceController) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
-	if diffs.HasFlag(model.DIFFNONE) {
+	if diffs == model.DIFFNONE {
 		return nil
 	}
 	if diffs.HasFlag(model.DIFFEMERGENCYENABLED) {
@@ -438,10 +446,42 @@ func (d *deviceController) UnscheduleLightingJobs(lightingID int64) error {
 }
 
 func (d *deviceController) changeShutterPins(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+	shutter, err := d.getShutterByID(updatedShutter.ID)
+	if err != nil {
+		return err
+	}
+	d.StopShutter(updatedShutter.ID)
+	if diffs.HasFlag(model.DIFFOPENPIN) {
+		if d.simulate {
+			shutter.openPin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.OpenPin}
+		} else {
+			shutter.openPin = gpioreg.ByNumber(*updatedShutter.OpenPin)
+		}
+	}
+	if diffs.HasFlag(model.DIFFOPENPIN) {
+		if err != nil {
+			return err
+		}
+		if d.simulate {
+			shutter.closePin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.ClosePin}
+		} else {
+			shutter.closePin = gpioreg.ByNumber(*updatedShutter.ClosePin)
+		}
+	}
 	return nil
 }
 
 func (d *deviceController) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+	d.TurnLightingOff(updatedLighting.ID)
+	lighting, err := d.getLightingByID(updatedLighting.ID)
+	if err != nil {
+		return err
+	}
+	if d.simulate {
+		lighting.switchPin = &simulatePinIO{name: *updatedLighting.Description, number: *updatedLighting.SwitchPin}
+	} else {
+		lighting.switchPin = gpioreg.ByNumber(*updatedLighting.SwitchPin)
+	}
 	return nil
 }
 

@@ -26,13 +26,13 @@ func (bitmask DifferenceType) HasFlag(flag DifferenceType) bool { return bitmask
 //See const in model/comparer.go
 func (s1 *Shutter) GetDifferences(s2 *Shutter) DifferenceType {
 	result := DIFFNONE
-	if s1.ClosePin != s2.ClosePin {
+	if *s1.ClosePin != *s2.ClosePin {
 		result |= DIFFCLOSEPIN
 	}
-	if s1.OpenPin != s2.OpenPin {
+	if *s1.OpenPin != *s2.OpenPin {
 		result |= DIFFOPENPIN
 	}
-	if s1.CompleteWayInSeconds != s2.CompleteWayInSeconds {
+	if *s1.CompleteWayInSeconds != *s2.CompleteWayInSeconds {
 		result |= DIFFCOMPLETEWAYINSECONDS
 	}
 	if s1.JobsEnabled != s2.JobsEnabled {

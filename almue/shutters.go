@@ -10,12 +10,6 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (a *Almue) newShutterPayloadResponse(shutter *model.Shutter) *shutterPayload {
-	resp := &shutterPayload{Shutter: shutter}
-
-	return resp
-}
-
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	floor := ctx.Value(floorCtxKey).(*model.Floor)
@@ -94,9 +88,10 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	oldShutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	oldShutter := shutter.DeepCopy()
 
-	s := &shutterPayload{Shutter: oldShutter}
+	s := &shutterPayload{Shutter: shutter}
 	if err := render.Bind(r, s); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return

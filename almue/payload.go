@@ -80,6 +80,12 @@ func (a *Almue) newShutterListPayloadResponse(shutters []*model.Shutter) []rende
 	return list
 }
 
+func (a *Almue) newShutterPayloadResponse(shutter *model.Shutter) *shutterPayload {
+	resp := &shutterPayload{Shutter: shutter}
+
+	return resp
+}
+
 //-- LIGHTING PAYLOAD --//
 type lightingPayload struct {
 	*model.Lighting
