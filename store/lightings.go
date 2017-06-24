@@ -62,7 +62,7 @@ func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	res, err := d.Exec(
 		lightingCreateStmt,
 		l.Description, l.SwitchPin, l.JobsEnabled,
-		l.OnTime, l.OffTime, l.EmergencyEnabled,
+		l.OnTime.UTC(), l.OffTime.UTC(), l.EmergencyEnabled,
 		l.DeviceStatus, l.Disabled, l.FloorID)
 
 	if err != nil {
@@ -95,7 +95,7 @@ func (d *datastore) UpdateLighting(l *model.Lighting) error {
 		d.Exec(
 			lightingUpdateStmt,
 			l.Description, l.SwitchPin,
-			l.JobsEnabled, l.OnTime, l.OffTime, l.EmergencyEnabled,
+			l.JobsEnabled, l.OnTime.UTC(), l.OffTime.UTC(), l.EmergencyEnabled,
 			l.DeviceStatus, l.Disabled, l.ID)
 	return err
 }

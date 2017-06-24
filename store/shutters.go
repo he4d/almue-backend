@@ -80,7 +80,7 @@ func (d *datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	res, err := d.Exec(
 		shutterCreateStmt,
 		s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
-		s.JobsEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
+		s.JobsEnabled, s.OpenTime.UTC(), s.CloseTime.UTC(), s.EmergencyEnabled,
 		s.DeviceStatus, s.Disabled, s.FloorID)
 	if err != nil {
 		return 0, err
@@ -112,7 +112,7 @@ func (d *datastore) UpdateShutter(s *model.Shutter) error {
 		d.Exec(
 			shutterUpdateStmt,
 			s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
-			s.JobsEnabled, s.OpenTime, s.CloseTime, s.EmergencyEnabled,
+			s.JobsEnabled, s.OpenTime.UTC(), s.CloseTime.UTC(), s.EmergencyEnabled,
 			s.DeviceStatus, s.Disabled, s.ID)
 	return err
 }

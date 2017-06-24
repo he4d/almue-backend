@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/carlescere/scheduler"
 	"github.com/he4d/almue/model"
+	"github.com/he4d/scheduler"
 	"periph.io/x/periph/conn/gpio"
 	"periph.io/x/periph/conn/gpio/gpioreg"
 )

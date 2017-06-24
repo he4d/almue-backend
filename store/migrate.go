@@ -103,7 +103,7 @@ SELECT name FROM migrations
 
 var createTableFloors = `
 CREATE TABLE IF NOT EXISTS floors (
-id integer primary key autoincrement,
+id integer primary key,
 created datetime NOT NULL DEFAULT current_timestamp,
 modified datetime NOT NULL DEFAULT current_timestamp,
 description varchar(255) NOT NULL UNIQUE 
@@ -113,7 +113,7 @@ description varchar(255) NOT NULL UNIQUE
 //TODO: The pins must be unique merged (open_pin and close_pin) TABLE FOR PINS!!
 var createTableShutters = `
 CREATE TABLE IF NOT EXISTS shutters (
-id integer primary key autoincrement,
+id integer primary key,
 created datetime NOT NULL DEFAULT current_timestamp,
 modified datetime NOT NULL DEFAULT current_timestamp,
 description varchar(255),
@@ -133,7 +133,7 @@ floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE
 //TODO: The pins must be unique merged with shutters (open_pin and close_pin)
 var createTableLightings = `
 CREATE TABLE IF NOT EXISTS lightings (
-id integer primary key autoincrement,
+id integer primary key,
 created datetime NOT NULL DEFAULT current_timestamp,
 modified datetime NOT NULL DEFAULT current_timestamp,
 description varchar(255),
