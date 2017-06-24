@@ -114,6 +114,16 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if diffs.HasFlag(model.DIFFDISABLED) {
+		if !updatedShutter.Disabled {
+			stateSync, err := a.deviceController.GetShutterStateSyncChannels(s.ID)
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+			go a.startObserveShutterState(updatedShutter.ID, stateSync)
+		}
+	}
+
 	render.Render(w, r, a.newShutterPayloadResponse(updatedShutter))
 }
 
@@ -141,6 +151,11 @@ func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+
+	if shutter.Disabled {
+		render.Render(w, r, ErrInvalidRequest(errors.New("Device is disabled for controlling")))
+		return
+	}
 
 	action := chi.URLParam(r, "action")
 	switch action {

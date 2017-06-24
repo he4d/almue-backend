@@ -115,6 +115,16 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if diffs.HasFlag(model.DIFFDISABLED) {
+		if !updatedLighting.Disabled {
+			stateSync, err := a.deviceController.GetLightingStateSyncChannels(l.ID)
+			if err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+			go a.startObserveLightingState(updatedLighting.ID, stateSync)
+		}
+	}
+
 	render.Render(w, r, a.newLightingPayloadResponse(updatedLighting))
 }
 
@@ -138,6 +148,11 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	lighting := ctx.Value(shutterCtxKey).(*model.Lighting)
+
+	if lighting.Disabled {
+		render.Render(w, r, ErrInvalidRequest(errors.New("Device is disabled for controlling")))
+		return
+	}
 
 	action := chi.URLParam(r, "action")
 	switch action {
