@@ -100,32 +100,6 @@ func (a *Almue) initializeDeviceController() {
 	}
 }
 
-func (a *Almue) startObserveShutterState(shutterID int64, stateSync *embedded.StateSyncChannels) error {
-	for {
-		select {
-		case newState := <-stateSync.State:
-			if err := a.store.UpdateShutterState(shutterID, newState); err != nil {
-				//TODO: errorhandling
-			}
-		case <-stateSync.Quit:
-			return nil
-		}
-	}
-}
-
-func (a *Almue) startObserveLightingState(lightingID int64, stateSync *embedded.StateSyncChannels) error {
-	for {
-		select {
-		case newState := <-stateSync.State:
-			if err := a.store.UpdateLightingState(lightingID, newState); err != nil {
-				//TODO: errorhandling
-			}
-		case <-stateSync.Quit:
-			return nil
-		}
-	}
-}
-
 func (a *Almue) initializeRouter() {
 	a.router = chi.NewRouter()
 
@@ -133,6 +107,8 @@ func (a *Almue) initializeRouter() {
 	a.router.Use(middleware.RequestID)
 	a.router.Use(middleware.Logger)
 	a.router.Use(middleware.Recoverer)
+	//TODO: REMOVE AFTER FRONTEND CREATION
+	a.router.Use(AccessControlMiddleware)
 	a.router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	// Serve static files

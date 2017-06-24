@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/render"
+	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/model"
 )
 
@@ -173,4 +174,17 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.NoContent(w, r)
+}
+
+func (a *Almue) startObserveLightingState(lightingID int64, stateSync *embedded.StateSyncChannels) error {
+	for {
+		select {
+		case newState := <-stateSync.State:
+			if err := a.store.UpdateLightingState(lightingID, newState); err != nil {
+				//TODO: errorhandling
+			}
+		case <-stateSync.Quit:
+			return nil
+		}
+	}
 }
