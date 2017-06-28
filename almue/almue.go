@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/store"
+	"github.com/rs/cors"
 )
 
 // Almue holds all the fields for the complete Application Context
@@ -22,11 +23,12 @@ type Almue struct {
 	deviceController embedded.DeviceController
 	simulate         bool
 	dbPath           string
+	publicApi        bool
 }
 
 // NewAlmue initializes a new Almue struct, initializes it and return it
-func NewAlmue(dbPath string, simulate bool) *Almue {
-	app := Almue{dbPath: dbPath, simulate: simulate}
+func NewAlmue(dbPath string, simulate bool, publicApi bool) *Almue {
+	app := Almue{dbPath: dbPath, simulate: simulate, publicApi: publicApi}
 	app.initialize()
 	return &app
 }
@@ -107,8 +109,18 @@ func (a *Almue) initializeRouter() {
 	a.router.Use(middleware.RequestID)
 	a.router.Use(middleware.Logger)
 	a.router.Use(middleware.Recoverer)
-	//TODO: REMOVE AFTER FRONTEND CREATION
-	a.router.Use(AccessControlMiddleware)
+
+	if a.publicApi {
+		cors := cors.New(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: false,
+			MaxAge:           300, // Maximum value not ignored by any of major browsers
+		})
+		a.router.Use(cors.Handler)
+	}
 	a.router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	// Serve static files
