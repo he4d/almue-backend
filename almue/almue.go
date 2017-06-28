@@ -23,12 +23,12 @@ type Almue struct {
 	deviceController embedded.DeviceController
 	simulate         bool
 	dbPath           string
-	publicApi        bool
+	publicAPI        bool
 }
 
 // NewAlmue initializes a new Almue struct, initializes it and return it
-func NewAlmue(dbPath string, simulate bool, publicApi bool) *Almue {
-	app := Almue{dbPath: dbPath, simulate: simulate, publicApi: publicApi}
+func NewAlmue(dbPath string, simulate bool, publicAPI bool) *Almue {
+	app := Almue{dbPath: dbPath, simulate: simulate, publicAPI: publicAPI}
 	app.initialize()
 	return &app
 }
@@ -110,7 +110,7 @@ func (a *Almue) initializeRouter() {
 	a.router.Use(middleware.Logger)
 	a.router.Use(middleware.Recoverer)
 
-	if a.publicApi {
+	if a.publicAPI {
 		cors := cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},

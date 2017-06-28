@@ -10,12 +10,12 @@ import (
 var (
 	simulate  = flag.Bool("simulate", false, "starts simulation mode without gpio (operations will be written to stdout instead)")
 	routes    = flag.Bool("routes", false, "generate router documentation")
-	publicapi = flag.Bool("publicapi", false, "enables public access to the rest service")
+	publicAPI = flag.Bool("publicapi", false, "enables public access to the rest service")
 )
 
 func main() {
 	flag.Parse()
-	almue := almue.NewAlmue("./almue.db", *simulate, *publicapi)
+	almue := almue.NewAlmue("./almue.db", *simulate, *publicAPI)
 	if *routes {
 		almue.GenerateRoutesDoc()
 		return
