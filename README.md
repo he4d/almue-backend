@@ -9,7 +9,7 @@ and run the cross-compile.sh script (set the GOARM variable depending on your ra
 ### Todo
 
 - [ ] Logging
-- [ ] Updating devices
+- [x] Updating devices
 - [ ] Testing
 - [ ] Deploy scripts
 
