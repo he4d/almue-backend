@@ -1,7 +1,6 @@
 package almue
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -47,44 +46,44 @@ func (a *Almue) getShutter(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, hasFloorCtx := ctx.Value(floorCtxKey).(*model.Floor)
 
-	s := new(model.Shutter)
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(s); err != nil {
+	s := &shutterPayload{}
+	if err := render.Bind(r, s); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
-		return
 	}
-	defer r.Body.Close()
-	s.FloorID = floor.ID
+
+	if hasFloorCtx {
+		s.FloorID = &floor.ID
+	}
 
 	var err error
-	s.ID, err = a.store.CreateShutter(s)
+	s.ID, err = a.store.CreateShutter(s.Shutter)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	s, err = a.store.GetShutter(s.ID)
+	shutter, err := a.store.GetShutter(s.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	if err := a.deviceController.RegisterShutters(s); err != nil {
+	if err := a.deviceController.RegisterShutters(shutter); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	stateSync, err := a.deviceController.GetShutterStateSyncChannels(s.ID)
+	stateSync, err := a.deviceController.GetShutterStateSyncChannels(shutter.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 	}
 
-	go a.startObserveShutterState(s.ID, stateSync)
+	go a.startObserveShutterState(shutter.ID, stateSync)
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, a.newShutterPayloadResponse(s))
+	render.Render(w, r, a.newShutterPayloadResponse(shutter))
 }
 
 func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +93,12 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 
 	s := &shutterPayload{Shutter: shutter}
 	if err := render.Bind(r, s); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	if s.Shutter.ID != oldShutter.ID {
+		err := errors.New("Can not update the shutter to a different id")
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}

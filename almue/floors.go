@@ -1,7 +1,7 @@
 package almue
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/render"
@@ -55,29 +55,33 @@ func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	oldFloor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	oldFloor := floor.DeepCopy()
 
-	f := new(model.Floor)
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(f); err != nil {
+	f := &floorPayload{Floor: floor}
+	if err := render.Bind(r, f); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
-	defer r.Body.Close()
-	f.ID = oldFloor.ID
 
-	if err := a.store.UpdateFloor(f); err != nil {
+	if f.Floor.ID != oldFloor.ID {
+		err := errors.New("Can not update the floor to a different id")
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	if err := a.store.UpdateFloor(f.Floor); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	f, err := a.store.GetFloor(f.ID)
+	updatedFloor, err := a.store.GetFloor(f.Floor.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	render.Render(w, r, a.newFloorPayloadResponse(f))
+	render.Render(w, r, a.newFloorPayloadResponse(updatedFloor))
 }
 
 func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {

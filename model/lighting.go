@@ -15,7 +15,7 @@ type Lighting struct {
 	EmergencyEnabled bool      `json:"emergencyEnabled"`
 	DeviceStatus     string    `json:"deviceStatus"`
 	Disabled         bool      `json:"disabled"`
-	FloorID          int64     `json:"floorId"`
+	FloorID          *int64    `json:"floorId"`
 }
 
 //DeepCopy creates a deep copy of a Lighting
@@ -25,6 +25,7 @@ func (l *Lighting) DeepCopy() *Lighting {
 	}
 	descr := *l.Description
 	switchPin := *l.SwitchPin
+	floorID := *l.FloorID
 	copy := &Lighting{
 		Base:             l.Base,
 		Description:      &descr,
@@ -35,7 +36,7 @@ func (l *Lighting) DeepCopy() *Lighting {
 		EmergencyEnabled: l.EmergencyEnabled,
 		DeviceStatus:     l.DeviceStatus,
 		Disabled:         l.Disabled,
-		FloorID:          l.FloorID,
+		FloorID:          &floorID,
 	}
 	return copy
 }

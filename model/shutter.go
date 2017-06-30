@@ -17,7 +17,7 @@ type Shutter struct {
 	EmergencyEnabled     bool      `json:"emergencyEnabled"`
 	DeviceStatus         string    `json:"deviceStatus"`
 	Disabled             bool      `json:"disabled"`
-	FloorID              int64     `json:"floorId"`
+	FloorID              *int64    `json:"floorId"`
 }
 
 //DeepCopy creates a deep copy of a Shutter

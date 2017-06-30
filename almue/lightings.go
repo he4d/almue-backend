@@ -1,7 +1,6 @@
 package almue
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -47,45 +46,45 @@ func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, hasFloorCtx := ctx.Value(floorCtxKey).(*model.Floor)
 
-	l := new(model.Lighting)
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(l); err != nil {
-		render.Render(w, r, ErrNotFound)
-		return
+	l := &lightingPayload{}
+	if err := render.Bind(r, l); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
 	}
-	defer r.Body.Close()
-	l.FloorID = floor.ID
+
+	if hasFloorCtx {
+		l.FloorID = &floor.ID
+	}
 
 	var err error
-	l.ID, err = a.store.CreateLighting(l)
+	l.ID, err = a.store.CreateLighting(l.Lighting)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	l, err = a.store.GetLighting(l.ID)
+	lighting, err := a.store.GetLighting(l.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	if err := a.deviceController.RegisterLightings(l); err != nil {
+	if err := a.deviceController.RegisterLightings(lighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	syncState, err := a.deviceController.GetLightingStateSyncChannels(l.ID)
+	syncState, err := a.deviceController.GetLightingStateSyncChannels(lighting.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
 
-	go a.startObserveLightingState(l.ID, syncState)
+	go a.startObserveLightingState(lighting.ID, syncState)
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, a.newLightingPayloadResponse(l))
+	render.Render(w, r, a.newLightingPayloadResponse(lighting))
 }
 
 func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +94,12 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 
 	l := &lightingPayload{Lighting: lighting}
 	if err := render.Bind(r, l); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	if l.Lighting.ID != oldLighting.ID {
+		err := errors.New("Can not update the lighting to a different id")
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}

@@ -126,7 +126,7 @@ close_time datetime DEFAULT current_timestamp,
 emergency_enabled bool,
 device_status varchar(10),
 disabled bool,
-floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE 
+floor_id integer NOT NULL REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE 
 )
 `
 
@@ -144,7 +144,7 @@ off_time datetime DEFAULT current_timestamp,
 emergency_enabled bool,
 device_status varchar(10),
 disabled bool,
-floor_id integer REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE
+floor_id integer NOT NULL REFERENCES floors(id) ON DELETE CASCADE ON UPDATE CASCADE
 )
 `
 

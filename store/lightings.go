@@ -96,7 +96,7 @@ func (d *datastore) UpdateLighting(l *model.Lighting) error {
 			lightingUpdateStmt,
 			l.Description, l.SwitchPin,
 			l.JobsEnabled, l.OnTime.UTC(), l.OffTime.UTC(), l.EmergencyEnabled,
-			l.DeviceStatus, l.Disabled, l.ID)
+			l.DeviceStatus, l.Disabled, l.FloorID, l.ID)
 	return err
 }
 
@@ -163,7 +163,8 @@ on_time = ?,
 off_time = ?,
 emergency_enabled = ?,
 device_status = ?,
-disabled = ?  
+disabled = ?,
+floor_id = ?  
 WHERE id = ?
 `
 

@@ -113,7 +113,7 @@ func (d *datastore) UpdateShutter(s *model.Shutter) error {
 			shutterUpdateStmt,
 			s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
 			s.JobsEnabled, s.OpenTime.UTC(), s.CloseTime.UTC(), s.EmergencyEnabled,
-			s.DeviceStatus, s.Disabled, s.ID)
+			s.DeviceStatus, s.Disabled, s.FloorID, s.ID)
 	return err
 }
 
@@ -169,7 +169,8 @@ open_time = ?,
 close_time = ?,
 emergency_enabled = ?,
 device_status = ?,
-disabled = ? 
+disabled = ?,
+floor_id = ? 
 WHERE id = ?
 `
 
