@@ -2,9 +2,9 @@ package store
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/he4d/almue/model"
+	"github.com/he4d/simplejack"
 )
 
 // Store must be implemented by all data stores
@@ -54,21 +54,20 @@ type Store interface {
 
 type datastore struct {
 	*sql.DB
+	logger *simplejack.Logger
 }
 
 // New returns a new datastore that is completely initialized
-func New(path string) Store {
+func New(path string, logger *simplejack.Logger) (Store, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
-		log.Println(err)
-		log.Fatalln("database connection failed")
+		return nil, err
 	}
 
 	if err := setupDatabase(db); err != nil {
-		log.Println(err)
-		log.Fatalln("migration failed")
+		return nil, err
 	}
-	return &datastore{DB: db}
+	return &datastore{DB: db}, nil
 }
 
 func setupDatabase(db *sql.DB) error {

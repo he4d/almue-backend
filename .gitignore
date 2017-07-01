@@ -4,6 +4,9 @@ debug
 #ignore the database
 almue.db
 
+#ignore the log
+almue.log
+
 #ignore vscode
 .vscode/
 

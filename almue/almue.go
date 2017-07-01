@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/store"
+	"github.com/he4d/simplejack"
 	"github.com/rs/cors"
 )
 
@@ -24,13 +25,18 @@ type Almue struct {
 	simulate         bool
 	dbPath           string
 	publicAPI        bool
+	logger           *simplejack.Logger
 }
 
 // NewAlmue initializes a new Almue struct, initializes it and return it
-func NewAlmue(dbPath string, simulate bool, publicAPI bool) *Almue {
-	app := Almue{dbPath: dbPath, simulate: simulate, publicAPI: publicAPI}
-	app.initialize()
-	return &app
+func NewAlmue(dbPath string, simulate bool, publicAPI bool, logger *simplejack.Logger) *Almue {
+	app := &Almue{dbPath: dbPath, simulate: simulate, publicAPI: publicAPI, logger: logger}
+	logger.Info.Print("Initializing the application")
+	if err := app.initialize(); err != nil {
+		logger.Fatal.Fatal(err)
+	}
+	logger.Info.Print("Successfully initialized the application")
+	return app
 }
 
 // Serve must be called to start the Almue backend
@@ -53,33 +59,44 @@ func (a *Almue) GenerateRoutesDoc() {
 	f.WriteString(content)
 }
 
-func (a *Almue) initialize() {
-	a.initializeRouter()
-	a.initializeDatabase()
-	a.initializeDeviceController()
+func (a *Almue) initialize() error {
+	if err := a.initializeRouter(); err != nil {
+		return err
+	}
+	if err := a.initializeDatabase(); err != nil {
+		return err
+	}
+	if err := a.initializeDeviceController(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (a *Almue) initializeDatabase() {
-	a.store = store.New(a.dbPath)
+func (a *Almue) initializeDatabase() error {
+	var err error
+	if a.store, err = store.New(a.dbPath, a.logger); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (a *Almue) initializeDeviceController() {
-	a.deviceController = embedded.New(a.simulate)
+func (a *Almue) initializeDeviceController() error {
+	a.deviceController = embedded.New(a.simulate, a.logger)
 
 	// Register all shutters
 	allShutters, err := a.store.GetShutterList()
 	if err != nil {
-		log.Fatalf("initializeDeviceController failed %s", err)
+		return err
 	}
 
 	if err := a.deviceController.RegisterShutters(allShutters...); err != nil {
-		log.Fatalf("could not register shutters %s", err)
+		return err
 	}
 
 	for _, shutter := range allShutters {
 		syncState, err := a.deviceController.GetShutterStateSyncChannels(shutter.ID)
 		if err != nil {
-			log.Fatalf("could not get shutterStateSync: %s", err)
+			return err
 		}
 		go a.startObserveShutterState(shutter.ID, syncState)
 	}
@@ -87,27 +104,31 @@ func (a *Almue) initializeDeviceController() {
 	// Register all lightings
 	allLightings, err := a.store.GetLightingList()
 	if err != nil {
-		log.Fatalf("initializeDeviceController failed %s", err)
+		return err
 	}
 	if err := a.deviceController.RegisterLightings(allLightings...); err != nil {
-		log.Fatalf("could not register lightings %s", err)
+		return err
 	}
 
 	for _, lighting := range allLightings {
 		syncState, err := a.deviceController.GetLightingStateSyncChannels(lighting.ID)
 		if err != nil {
-			log.Fatalf("could not get lightingStateSync: %s", err)
+			return err
 		}
 		go a.startObserveLightingState(lighting.ID, syncState)
 	}
+
+	return nil
 }
 
-func (a *Almue) initializeRouter() {
+func (a *Almue) initializeRouter() error {
 	a.router = chi.NewRouter()
 
 	// Set up the middleware
+	//TODO: ONLY FOR DEBUGGING
 	a.router.Use(middleware.RequestID)
 	a.router.Use(middleware.Logger)
+	//
 	a.router.Use(middleware.Recoverer)
 
 	if a.publicAPI {
@@ -124,7 +145,10 @@ func (a *Almue) initializeRouter() {
 	a.router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	// Serve static files
-	workDir, _ := os.Getwd()
+	workDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	filesDir := filepath.Join(workDir, "frontend/dist")
 	fileServer(a.router, "/", http.Dir(filesDir))
 
@@ -196,6 +220,7 @@ func (a *Almue) initializeRouter() {
 			})
 		})
 	})
+	return nil
 }
 
 func fileServer(r chi.Router, path string, root http.FileSystem) {

@@ -6,6 +6,7 @@ import (
 	"periph.io/x/periph/host"
 
 	"github.com/he4d/almue/model"
+	"github.com/he4d/simplejack"
 )
 
 //StateSyncChannels holds the channels for the synchronization of the state
@@ -55,11 +56,12 @@ type deviceController struct {
 	shutters  map[int64]*shutter
 	lightings map[int64]*lighting
 	simulate  bool
+	logger    *simplejack.Logger
 }
 
 //New creates a new DeviceController and returns it
 //if true is passed to the simulate argument it runs without gpio acces
-func New(simulate bool) DeviceController {
+func New(simulate bool, logger *simplejack.Logger) DeviceController {
 	if !simulate {
 		if _, err := host.Init(); err != nil {
 			log.Fatal(err)
@@ -69,5 +71,6 @@ func New(simulate bool) DeviceController {
 		shutters:  make(map[int64]*shutter),
 		lightings: make(map[int64]*lighting),
 		simulate:  simulate,
+		logger:    logger,
 	}
 }
