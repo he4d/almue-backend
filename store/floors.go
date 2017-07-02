@@ -6,7 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetFloor(floorID int64) (*model.Floor, error) {
+func (d *Datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	floor := &model.Floor{}
 	err := d.QueryRow(floorFindIDStmt,
 		floorID).Scan(&floor.ID, &floor.Created, &floor.Modified, &floor.Description)
@@ -16,7 +16,7 @@ func (d *datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	return floor, err
 }
 
-func (d *datastore) GetFloorList() ([]*model.Floor, error) {
+func (d *Datastore) GetFloorList() ([]*model.Floor, error) {
 	rows, err := d.Query(floorsFindAllStmt)
 
 	if err != nil {
@@ -37,7 +37,7 @@ func (d *datastore) GetFloorList() ([]*model.Floor, error) {
 	return floors, err
 }
 
-func (d *datastore) CreateFloor(f *model.Floor) (int64, error) {
+func (d *Datastore) CreateFloor(f *model.Floor) (int64, error) {
 	res, err := d.Exec(
 		floorCreateStmt,
 		f.Description)
@@ -51,7 +51,7 @@ func (d *datastore) CreateFloor(f *model.Floor) (int64, error) {
 	return id, err
 }
 
-func (d *datastore) DeleteFloor(floorID int64) error {
+func (d *Datastore) DeleteFloor(floorID int64) error {
 	res, err := d.Exec(floorDeleteStmt, floorID)
 	if err != nil {
 		return err
@@ -66,13 +66,13 @@ func (d *datastore) DeleteFloor(floorID int64) error {
 	return err
 }
 
-func (d *datastore) UpdateFloor(f *model.Floor) error {
+func (d *Datastore) UpdateFloor(f *model.Floor) error {
 	_, err :=
 		d.Exec(floorUpdateStmt, f.Description, f.ID)
 	return err
 }
 
-func (d *datastore) NumShuttersOfFloor(floorID int64) (int, error) {
+func (d *Datastore) NumShuttersOfFloor(floorID int64) (int, error) {
 	retval := 0
 	err := d.QueryRow(numShuttersOfFloorStmt,
 		floorID).Scan(&retval)
@@ -82,7 +82,7 @@ func (d *datastore) NumShuttersOfFloor(floorID int64) (int, error) {
 	return retval, err
 }
 
-func (d *datastore) NumLightingsOfFloor(floorID int64) (int, error) {
+func (d *Datastore) NumLightingsOfFloor(floorID int64) (int, error) {
 	retval := 0
 	err := d.QueryRow(numLightingsfFloorStmt,
 		floorID).Scan(&retval)

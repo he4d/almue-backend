@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/render"
 	"github.com/he4d/almue/embedded"
-	"github.com/he4d/almue/store"
 	"github.com/he4d/simplejack"
 	"github.com/rs/cors"
 )
@@ -20,17 +19,16 @@ import (
 // Almue holds all the fields for the complete Application Context
 type Almue struct {
 	router           chi.Router
-	store            store.Store
+	store            Store
 	deviceController embedded.DeviceController
 	simulate         bool
-	dbPath           string
 	publicAPI        bool
 	logger           *simplejack.Logger
 }
 
-// NewAlmue initializes a new Almue struct, initializes it and return it
-func NewAlmue(dbPath string, simulate bool, publicAPI bool, logger *simplejack.Logger) *Almue {
-	app := &Almue{dbPath: dbPath, simulate: simulate, publicAPI: publicAPI, logger: logger}
+// New initializes a new Almue struct, initializes it and return it
+func New(store Store, logger *simplejack.Logger, simulate bool, publicAPI bool) *Almue {
+	app := &Almue{store: store, logger: logger, simulate: simulate, publicAPI: publicAPI}
 	logger.Info.Print("Initializing the application")
 	if err := app.initialize(); err != nil {
 		logger.Fatal.Fatal(err)
@@ -63,18 +61,7 @@ func (a *Almue) initialize() error {
 	if err := a.initializeRouter(); err != nil {
 		return err
 	}
-	if err := a.initializeDatabase(); err != nil {
-		return err
-	}
 	if err := a.initializeDeviceController(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *Almue) initializeDatabase() error {
-	var err error
-	if a.store, err = store.New(a.dbPath, a.logger); err != nil {
 		return err
 	}
 	return nil

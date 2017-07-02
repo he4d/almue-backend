@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/he4d/almue/almue"
+	"github.com/he4d/almue/store"
 	"github.com/he4d/simplejack"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -39,7 +40,14 @@ func main() {
 
 	logger := simplejack.New(sjLogLevel, writer)
 
-	almue := almue.NewAlmue("./almue.db", *simulate, *publicAPI, logger)
+	store, err := store.New("./almue.db", logger)
+	if err != nil {
+		logger.Fatal.Fatalf("Could not create a new store: %v", err)
+	}
+
+	//TODO: Create the deviceController here and inject to the new almue instance
+
+	almue := almue.New(store, logger, *simulate, *publicAPI)
 	if *routes {
 		almue.GenerateRoutesDoc()
 		return

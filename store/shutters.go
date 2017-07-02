@@ -6,7 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
+func (d *Datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	s := new(model.Shutter)
 
 	err := d.QueryRow(shutterByIDStmt, shutterID).Scan(
@@ -22,7 +22,7 @@ func (d *datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	return s, err
 }
 
-func (d *datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, error) {
+func (d *Datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, error) {
 	rows, err := d.Query(shuttersOfFloorStmt, floorID)
 
 	if err != nil {
@@ -49,7 +49,7 @@ func (d *datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, erro
 	return shutters, err
 }
 
-func (d *datastore) GetShutterList() ([]*model.Shutter, error) {
+func (d *Datastore) GetShutterList() ([]*model.Shutter, error) {
 	rows, err := d.Query(shuttersFindAllStmt)
 
 	if err != nil {
@@ -76,7 +76,7 @@ func (d *datastore) GetShutterList() ([]*model.Shutter, error) {
 	return shutters, err
 }
 
-func (d *datastore) CreateShutter(s *model.Shutter) (int64, error) {
+func (d *Datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	res, err := d.Exec(
 		shutterCreateStmt,
 		s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
@@ -92,7 +92,7 @@ func (d *datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	return id, err
 }
 
-func (d *datastore) DeleteShutter(shutterID int64) error {
+func (d *Datastore) DeleteShutter(shutterID int64) error {
 	res, err := d.Exec(shutterDeleteStmt, shutterID)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (d *datastore) DeleteShutter(shutterID int64) error {
 	return err
 }
 
-func (d *datastore) UpdateShutter(s *model.Shutter) error {
+func (d *Datastore) UpdateShutter(s *model.Shutter) error {
 	_, err :=
 		d.Exec(
 			shutterUpdateStmt,
@@ -117,7 +117,7 @@ func (d *datastore) UpdateShutter(s *model.Shutter) error {
 	return err
 }
 
-func (d *datastore) UpdateShutterState(shutterID int64, newState string) error {
+func (d *Datastore) UpdateShutterState(shutterID int64, newState string) error {
 	_, err :=
 		d.Exec(shutterStateUpdateStmt, newState, shutterID)
 	return err

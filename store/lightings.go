@@ -6,7 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
-func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error) {
+func (d *Datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsOfFloorStmt, floorID)
 
 	if err != nil {
@@ -32,7 +32,7 @@ func (d *datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, er
 	return lightings, err
 }
 
-func (d *datastore) GetLightingList() ([]*model.Lighting, error) {
+func (d *Datastore) GetLightingList() ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsFindAllStmt)
 
 	if err != nil {
@@ -58,7 +58,7 @@ func (d *datastore) GetLightingList() ([]*model.Lighting, error) {
 	return lightings, err
 }
 
-func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
+func (d *Datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	res, err := d.Exec(
 		lightingCreateStmt,
 		l.Description, l.SwitchPin, l.JobsEnabled,
@@ -75,7 +75,7 @@ func (d *datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	return id, err
 }
 
-func (d *datastore) DeleteLighting(lightingID int64) error {
+func (d *Datastore) DeleteLighting(lightingID int64) error {
 	res, err := d.Exec(lightingDeleteStmt, lightingID)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (d *datastore) DeleteLighting(lightingID int64) error {
 	return err
 }
 
-func (d *datastore) UpdateLighting(l *model.Lighting) error {
+func (d *Datastore) UpdateLighting(l *model.Lighting) error {
 	_, err :=
 		d.Exec(
 			lightingUpdateStmt,
@@ -100,13 +100,13 @@ func (d *datastore) UpdateLighting(l *model.Lighting) error {
 	return err
 }
 
-func (d *datastore) UpdateLightingState(lightingID int64, newState string) error {
+func (d *Datastore) UpdateLightingState(lightingID int64, newState string) error {
 	_, err :=
 		d.Exec(lightingStateUpdateStmt, newState, lightingID)
 	return err
 }
 
-func (d *datastore) GetLighting(lightingID int64) (*model.Lighting, error) {
+func (d *Datastore) GetLighting(lightingID int64) (*model.Lighting, error) {
 	l := new(model.Lighting)
 
 	err := d.QueryRow(lightingByIDStmt, lightingID).Scan(
