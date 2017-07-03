@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/render"
-	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/model"
 )
 
@@ -75,13 +74,6 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stateSync, err := a.deviceController.GetShutterStateSyncChannels(shutter.ID)
-	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
-	}
-
-	go a.startObserveShutterState(shutter.ID, stateSync)
-
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, a.newShutterPayloadResponse(shutter))
 }
@@ -118,16 +110,6 @@ func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	if err := a.deviceController.UpdateShutter(diffs, updatedShutter); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 		return
-	}
-
-	if diffs.HasFlag(model.DIFFDISABLED) {
-		if !updatedShutter.Disabled {
-			stateSync, err := a.deviceController.GetShutterStateSyncChannels(s.ID)
-			if err != nil {
-				render.Render(w, r, ErrInternalServer(err))
-			}
-			go a.startObserveShutterState(updatedShutter.ID, stateSync)
-		}
 	}
 
 	render.Render(w, r, a.newShutterPayloadResponse(updatedShutter))
@@ -188,17 +170,4 @@ func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.NoContent(w, r)
-}
-
-func (a *Almue) startObserveShutterState(shutterID int64, stateSync *embedded.StateSyncChannels) error {
-	for {
-		select {
-		case newState := <-stateSync.State:
-			if err := a.store.UpdateShutterState(shutterID, newState); err != nil {
-				//TODO: errorhandling
-			}
-		case <-stateSync.Quit:
-			return nil
-		}
-	}
 }

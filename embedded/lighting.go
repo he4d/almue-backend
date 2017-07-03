@@ -1,7 +1,6 @@
 package embedded
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/he4d/almue/model"
@@ -11,31 +10,27 @@ import (
 )
 
 type lighting struct {
-	ID        int64
 	switchPin gpio.PinIO
 	onJob     *scheduler.Job
 	offJob    *scheduler.Job
-	stateSync *StateSyncChannels
 }
 
-func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) error {
+func (c *EmbeddedController) RegisterLightings(lightings ...*model.Lighting) error {
 	for _, lightingModel := range lightings {
 		var switchPin gpio.PinIO
-		if d.simulate {
+		if c.simulate {
 			switchPin = &simulatePinIO{name: *lightingModel.Description, number: *lightingModel.SwitchPin}
 		} else {
 			switchPin = gpioreg.ByNumber(*lightingModel.SwitchPin)
 		}
-		stateSync := new(StateSyncChannels)
-		stateSync.State = make(chan string)
-		stateSync.Quit = make(chan bool)
-		d.lightings[lightingModel.ID] = &lighting{
-			ID:        lightingModel.ID,
+		lightingToAdd := &lighting{
 			switchPin: switchPin,
-			stateSync: stateSync,
 		}
+
+		c.lightings[lightingModel.ID] = lightingToAdd
+
 		if lightingModel.JobsEnabled {
-			if err := d.ScheduleLightingJobs(lightingModel); err != nil {
+			if err := c.ScheduleLightingJobs(lightingModel); err != nil {
 				return err
 			}
 		}
@@ -43,26 +38,19 @@ func (d *deviceController) RegisterLightings(lightings ...*model.Lighting) error
 	return nil
 }
 
-func (d *deviceController) UnregisterLighting(lightingID int64) error {
-	lighting, ok := d.lightings[lightingID]
-	if !ok {
-		return fmt.Errorf("Lighting with id: %d cannot be unregistered, because it doesnt exist", lightingID)
-	}
-	if err := d.TurnLightingOff(lightingID); err != nil {
+func (c *EmbeddedController) UnregisterLighting(lightingID int64) error {
+	if err := c.TurnLightingOff(lightingID); err != nil {
 		return err
 	}
-	if err := d.UnscheduleLightingJobs(lightingID); err != nil {
+	if err := c.UnscheduleLightingJobs(lightingID); err != nil {
 		return err
 	}
 
-	//Stop state synchronization
-	lighting.stateSync.Quit <- true
-
-	delete(d.lightings, lightingID)
+	delete(c.lightings, lightingID)
 	return nil
 }
 
-func (d *deviceController) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+func (c *EmbeddedController) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
 	if diffs == model.DIFFNONE {
 		return nil
 	}
@@ -75,32 +63,32 @@ func (d *deviceController) UpdateLighting(diffs model.DifferenceType, updatedLig
 	}
 	if diffs.HasFlag(model.DIFFDISABLED) {
 		if updatedLighting.Disabled {
-			d.UnregisterLighting(updatedLighting.ID)
+			c.UnregisterLighting(updatedLighting.ID)
 			return nil
 		}
-		d.RegisterLightings(updatedLighting)
+		c.RegisterLightings(updatedLighting)
 		return nil
 	}
 	if diffs.HasFlag(model.DIFFJOBSENABLED) {
 		if updatedLighting.JobsEnabled {
-			if err := d.ScheduleLightingJobs(updatedLighting); err != nil {
+			if err := c.ScheduleLightingJobs(updatedLighting); err != nil {
 				return err
 			}
 			alreadyScheduled = true
 		} else {
-			if err := d.UnscheduleLightingJobs(updatedLighting.ID); err != nil {
+			if err := c.UnscheduleLightingJobs(updatedLighting.ID); err != nil {
 				return err
 			}
 		}
 	}
 	if diffs.HasFlag(model.DIFFSWITCHPIN) {
-		if err := d.changeLightingPin(diffs, updatedLighting); err != nil {
+		if err := c.changeLightingPin(diffs, updatedLighting); err != nil {
 			return err
 		}
 	}
 	if diffs.HasFlag(model.DIFFONTIME) || diffs.HasFlag(model.DIFFOFFTIME) {
 		if updatedLighting.JobsEnabled && !alreadyScheduled {
-			if err := d.rescheduleLightingJobs(updatedLighting); err != nil {
+			if err := c.rescheduleLightingJobs(updatedLighting); err != nil {
 				return err
 			}
 		}
@@ -108,43 +96,47 @@ func (d *deviceController) UpdateLighting(diffs model.DifferenceType, updatedLig
 	return nil
 }
 
-func (d *deviceController) TurnLightingOn(lightingID int64) error {
-	device, err := d.getLightingByID(lightingID)
+func (c *EmbeddedController) TurnLightingOn(lightingID int64) error {
+	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
 	}
 	if err := device.switchPin.Out(gpio.High); err != nil {
 		return err
 	}
-	device.stateSync.State <- "on"
+	if err := c.stateStore.UpdateLightingState(lightingID, "on"); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (d *deviceController) TurnLightingOff(lightingID int64) error {
-	device, err := d.getLightingByID(lightingID)
+func (c *EmbeddedController) TurnLightingOff(lightingID int64) error {
+	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
 	}
 	if err := device.switchPin.Out(gpio.Low); err != nil {
 		return err
 	}
-	device.stateSync.State <- "off"
+	if err := c.stateStore.UpdateLightingState(lightingID, "off"); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (d *deviceController) ScheduleLightingJobs(lighting *model.Lighting) error {
-	device, err := d.getLightingByID(lighting.ID)
+func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) error {
+	device, err := c.getLightingByID(lighting.ID)
 	if err != nil {
 		return err
 	}
 	device.onJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", lighting.OnTime.Hour(), lighting.OnTime.Minute())).Run(func() {
-		d.TurnLightingOn(device.ID)
+		c.TurnLightingOn(lighting.ID)
 	})
 	if err != nil {
 		return err
 	}
 	device.offJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", lighting.OffTime.Hour(), lighting.OffTime.Minute())).Run(func() {
-		d.TurnLightingOff(device.ID)
+		c.TurnLightingOff(lighting.ID)
 	})
 	if err != nil {
 		return err
@@ -152,8 +144,8 @@ func (d *deviceController) ScheduleLightingJobs(lighting *model.Lighting) error 
 	return nil
 }
 
-func (d *deviceController) UnscheduleLightingJobs(lightingID int64) error {
-	device, err := d.getLightingByID(lightingID)
+func (c *EmbeddedController) UnscheduleLightingJobs(lightingID int64) error {
+	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
 	}
@@ -166,21 +158,13 @@ func (d *deviceController) UnscheduleLightingJobs(lightingID int64) error {
 	return nil
 }
 
-func (d *deviceController) GetLightingStateSyncChannels(lightingID int64) (*StateSyncChannels, error) {
-	lighting, ok := d.lightings[lightingID]
-	if !ok {
-		return nil, errors.New("Could not obtain lighting for getting the statesyncchannels")
-	}
-	return lighting.stateSync, nil
-}
-
-func (d *deviceController) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
-	d.TurnLightingOff(updatedLighting.ID)
-	lighting, err := d.getLightingByID(updatedLighting.ID)
+func (c *EmbeddedController) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+	c.TurnLightingOff(updatedLighting.ID)
+	lighting, err := c.getLightingByID(updatedLighting.ID)
 	if err != nil {
 		return err
 	}
-	if d.simulate {
+	if c.simulate {
 		lighting.switchPin = &simulatePinIO{name: *updatedLighting.Description, number: *updatedLighting.SwitchPin}
 	} else {
 		lighting.switchPin = gpioreg.ByNumber(*updatedLighting.SwitchPin)
@@ -188,18 +172,18 @@ func (d *deviceController) changeLightingPin(diffs model.DifferenceType, updated
 	return nil
 }
 
-func (d *deviceController) rescheduleLightingJobs(lighting *model.Lighting) error {
-	if err := d.UnscheduleLightingJobs(lighting.ID); err != nil {
+func (c *EmbeddedController) rescheduleLightingJobs(lighting *model.Lighting) error {
+	if err := c.UnscheduleLightingJobs(lighting.ID); err != nil {
 		return err
 	}
-	if err := d.ScheduleLightingJobs(lighting); err != nil {
+	if err := c.ScheduleLightingJobs(lighting); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *deviceController) getLightingByID(lightingID int64) (*lighting, error) {
-	device, ok := d.lightings[lightingID]
+func (c *EmbeddedController) getLightingByID(lightingID int64) (*lighting, error) {
+	device, ok := c.lightings[lightingID]
 	if !ok {
 		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", lightingID)
 	}

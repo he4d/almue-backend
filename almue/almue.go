@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/docgen"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/render"
-	"github.com/he4d/almue/embedded"
 	"github.com/he4d/simplejack"
 	"github.com/rs/cors"
 )
@@ -19,16 +18,16 @@ import (
 // Almue holds all the fields for the complete Application Context
 type Almue struct {
 	router           chi.Router
-	store            Store
-	deviceController embedded.DeviceController
+	store            DeviceStore
+	deviceController DeviceController
 	simulate         bool
 	publicAPI        bool
 	logger           *simplejack.Logger
 }
 
 // New initializes a new Almue struct, initializes it and return it
-func New(store Store, logger *simplejack.Logger, simulate bool, publicAPI bool) *Almue {
-	app := &Almue{store: store, logger: logger, simulate: simulate, publicAPI: publicAPI}
+func New(store DeviceStore, deviceController DeviceController, logger *simplejack.Logger, publicAPI bool) *Almue {
+	app := &Almue{store: store, deviceController: deviceController, logger: logger, publicAPI: publicAPI}
 	logger.Info.Print("Initializing the application")
 	if err := app.initialize(); err != nil {
 		logger.Fatal.Fatal(err)
@@ -61,16 +60,13 @@ func (a *Almue) initialize() error {
 	if err := a.initializeRouter(); err != nil {
 		return err
 	}
-	if err := a.initializeDeviceController(); err != nil {
+	if err := a.feedDeviceController(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a *Almue) initializeDeviceController() error {
-	a.deviceController = embedded.New(a.simulate, a.logger)
-
-	// Register all shutters
+func (a *Almue) feedDeviceController() error {
 	allShutters, err := a.store.GetShutterList()
 	if err != nil {
 		return err
@@ -80,31 +76,14 @@ func (a *Almue) initializeDeviceController() error {
 		return err
 	}
 
-	for _, shutter := range allShutters {
-		syncState, err := a.deviceController.GetShutterStateSyncChannels(shutter.ID)
-		if err != nil {
-			return err
-		}
-		go a.startObserveShutterState(shutter.ID, syncState)
-	}
-
-	// Register all lightings
 	allLightings, err := a.store.GetLightingList()
 	if err != nil {
 		return err
 	}
+
 	if err := a.deviceController.RegisterLightings(allLightings...); err != nil {
 		return err
 	}
-
-	for _, lighting := range allLightings {
-		syncState, err := a.deviceController.GetLightingStateSyncChannels(lighting.ID)
-		if err != nil {
-			return err
-		}
-		go a.startObserveLightingState(lighting.ID, syncState)
-	}
-
 	return nil
 }
 

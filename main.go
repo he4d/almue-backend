@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/he4d/almue/almue"
+	"github.com/he4d/almue/embedded"
 	"github.com/he4d/almue/store"
 	"github.com/he4d/simplejack"
 	_ "github.com/mattn/go-sqlite3"
@@ -45,9 +46,12 @@ func main() {
 		logger.Fatal.Fatalf("Could not create a new store: %v", err)
 	}
 
-	//TODO: Create the deviceController here and inject to the new almue instance
+	deviceController, err := embedded.New(logger, store, *simulate)
+	if err != nil {
+		logger.Fatal.Fatalf("Could not create a new device controller: %v", err)
+	}
 
-	almue := almue.New(store, logger, *simulate, *publicAPI)
+	almue := almue.New(store, deviceController, logger, *publicAPI)
 	if *routes {
 		almue.GenerateRoutesDoc()
 		return

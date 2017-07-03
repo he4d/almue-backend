@@ -72,26 +72,6 @@ func (d *Datastore) UpdateFloor(f *model.Floor) error {
 	return err
 }
 
-func (d *Datastore) NumShuttersOfFloor(floorID int64) (int, error) {
-	retval := 0
-	err := d.QueryRow(numShuttersOfFloorStmt,
-		floorID).Scan(&retval)
-	if err != nil {
-		return 0, err
-	}
-	return retval, err
-}
-
-func (d *Datastore) NumLightingsOfFloor(floorID int64) (int, error) {
-	retval := 0
-	err := d.QueryRow(numLightingsfFloorStmt,
-		floorID).Scan(&retval)
-	if err != nil {
-		return 0, err
-	}
-	return retval, err
-}
-
 var floorFindIDStmt = `
 SELECT * FROM floors WHERE id = ?
 `
@@ -110,12 +90,4 @@ UPDATE floors SET description = ? WHERE id = ?
 
 var floorDeleteStmt = `
 DELETE FROM floors WHERE id = ?
-`
-
-var numShuttersOfFloorStmt = `
-SELECT COUNT(id) FROM shutters where floor_id = ?
-`
-
-var numLightingsfFloorStmt = `
-SELECT COUNT(id) FROM lightings where floor_id = ?
 `
