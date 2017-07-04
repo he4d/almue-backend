@@ -3,6 +3,8 @@ package embedded
 import (
 	"fmt"
 
+	"sync"
+
 	"github.com/he4d/almue/model"
 	"github.com/he4d/scheduler"
 	"periph.io/x/periph/conn/gpio"
@@ -10,6 +12,7 @@ import (
 )
 
 type lighting struct {
+	sync.Mutex
 	switchPin gpio.PinIO
 	onJob     *scheduler.Job
 	offJob    *scheduler.Job
@@ -27,7 +30,9 @@ func (c *EmbeddedController) RegisterLightings(lightings ...*model.Lighting) err
 			switchPin: switchPin,
 		}
 
+		c.lightingsLock.Lock()
 		c.lightings[lightingModel.ID] = lightingToAdd
+		c.lightingsLock.Unlock()
 
 		if lightingModel.JobsEnabled {
 			if err := c.ScheduleLightingJobs(lightingModel); err != nil {
@@ -46,7 +51,9 @@ func (c *EmbeddedController) UnregisterLighting(lightingID int64) error {
 		return err
 	}
 
+	c.lightingsLock.Lock()
 	delete(c.lightings, lightingID)
+	c.lightingsLock.Unlock()
 	return nil
 }
 
@@ -101,12 +108,14 @@ func (c *EmbeddedController) TurnLightingOn(lightingID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if err := device.switchPin.Out(gpio.High); err != nil {
 		return err
 	}
 	if err := c.stateStore.UpdateLightingState(lightingID, "on"); err != nil {
 		return err
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -115,12 +124,14 @@ func (c *EmbeddedController) TurnLightingOff(lightingID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if err := device.switchPin.Out(gpio.Low); err != nil {
 		return err
 	}
 	if err := c.stateStore.UpdateLightingState(lightingID, "off"); err != nil {
 		return err
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -129,6 +140,7 @@ func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) erro
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	device.onJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", lighting.OnTime.Hour(), lighting.OnTime.Minute())).Run(func() {
 		c.TurnLightingOn(lighting.ID)
 	})
@@ -141,6 +153,7 @@ func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) erro
 	if err != nil {
 		return err
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -149,12 +162,14 @@ func (c *EmbeddedController) UnscheduleLightingJobs(lightingID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if device.onJob != nil {
 		device.onJob.Quit <- true
 	}
 	if device.offJob != nil {
 		device.offJob.Quit <- true
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -164,11 +179,13 @@ func (c *EmbeddedController) changeLightingPin(diffs model.DifferenceType, updat
 	if err != nil {
 		return err
 	}
+	lighting.Lock()
 	if c.simulate {
 		lighting.switchPin = &simulatePinIO{name: *updatedLighting.Description, number: *updatedLighting.SwitchPin}
 	} else {
 		lighting.switchPin = gpioreg.ByNumber(*updatedLighting.SwitchPin)
 	}
+	lighting.Unlock()
 	return nil
 }
 
@@ -183,7 +200,9 @@ func (c *EmbeddedController) rescheduleLightingJobs(lighting *model.Lighting) er
 }
 
 func (c *EmbeddedController) getLightingByID(lightingID int64) (*lighting, error) {
+	c.lightingsLock.RLock()
 	device, ok := c.lightings[lightingID]
+	c.lightingsLock.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", lightingID)
 	}

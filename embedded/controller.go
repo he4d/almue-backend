@@ -3,15 +3,19 @@ package embedded
 import (
 	"periph.io/x/periph/host"
 
+	"sync"
+
 	"github.com/he4d/simplejack"
 )
 
 type EmbeddedController struct {
-	shutters   map[int64]*shutter
-	lightings  map[int64]*lighting
-	simulate   bool
-	logger     *simplejack.Logger
-	stateStore DeviceStateStore
+	shuttersLock  sync.RWMutex
+	shutters      map[int64]*shutter
+	lightingsLock sync.RWMutex
+	lightings     map[int64]*lighting
+	simulate      bool
+	logger        *simplejack.Logger
+	stateStore    DeviceStateStore
 }
 
 //New creates a new DeviceController and returns it

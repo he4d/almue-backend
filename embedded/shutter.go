@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"sync"
+
 	"github.com/he4d/almue/model"
 	"github.com/he4d/scheduler"
 	"periph.io/x/periph/conn/gpio"
@@ -11,6 +13,7 @@ import (
 )
 
 type shutter struct {
+	sync.Mutex
 	openPin             gpio.PinIO
 	closePin            gpio.PinIO
 	openJob             *scheduler.Job
@@ -37,7 +40,9 @@ func (c *EmbeddedController) RegisterShutters(shutters ...*model.Shutter) error 
 			completeWayDuration: duration,
 		}
 
+		c.shuttersLock.Lock()
 		c.shutters[shutterModel.ID] = shutterToAdd
+		c.shuttersLock.Unlock()
 
 		if shutterModel.JobsEnabled {
 			if err := c.ScheduleShutterJobs(shutterModel); err != nil {
@@ -57,7 +62,9 @@ func (c *EmbeddedController) UnregisterShutter(shutterID int64) error {
 		return err
 	}
 
+	c.shuttersLock.Lock()
 	delete(c.shutters, shutterID)
+	c.shuttersLock.Unlock()
 	return nil
 }
 
@@ -120,6 +127,7 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -143,7 +151,7 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 			//TODO: handle error..
 		}
 	})
-
+	device.Unlock()
 	return nil
 }
 
@@ -152,6 +160,7 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -176,6 +185,7 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 			//TODO: handle error..
 		}
 	})
+	device.Unlock()
 	return nil
 }
 
@@ -184,6 +194,7 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -196,6 +207,7 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 	if err := c.stateStore.UpdateShutterState(shutterID, "stopped"); err != nil {
 		return err
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -204,6 +216,7 @@ func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	device.openJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", shutter.OpenTime.Hour(), shutter.OpenTime.Minute())).Run(func() {
 		c.OpenShutter(shutter.ID)
 	})
@@ -216,6 +229,7 @@ func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
 	if err != nil {
 		return err
 	}
+	device.Unlock()
 	return nil
 }
 
@@ -224,17 +238,21 @@ func (c *EmbeddedController) UnscheduleShutterJobs(shutterID int64) error {
 	if err != nil {
 		return err
 	}
+	device.Lock()
 	if device.openJob != nil {
 		device.openJob.Quit <- true
 	}
 	if device.closeJob != nil {
 		device.closeJob.Quit <- true
 	}
+	device.Unlock()
 	return nil
 }
 
 func (c *EmbeddedController) getShutterByID(shutterID int64) (*shutter, error) {
+	c.shuttersLock.RLock()
 	device, ok := c.shutters[shutterID]
+	c.shuttersLock.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("Device with ID: %d is not registered in the DeviceController", shutterID)
 	}
@@ -252,11 +270,12 @@ func (c *EmbeddedController) rescheduleShutterJobs(shutter *model.Shutter) error
 }
 
 func (c *EmbeddedController) changeShutterPins(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+	c.StopShutter(updatedShutter.ID)
 	shutter, err := c.getShutterByID(updatedShutter.ID)
 	if err != nil {
 		return err
 	}
-	c.StopShutter(updatedShutter.ID)
+	shutter.Lock()
 	if diffs.HasFlag(model.DIFFOPENPIN) {
 		if c.simulate {
 			shutter.openPin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.OpenPin}
@@ -274,5 +293,6 @@ func (c *EmbeddedController) changeShutterPins(diffs model.DifferenceType, updat
 			shutter.closePin = gpioreg.ByNumber(*updatedShutter.ClosePin)
 		}
 	}
+	shutter.Unlock()
 	return nil
 }
