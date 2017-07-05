@@ -128,6 +128,7 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -141,17 +142,10 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 		return err
 	}
 	device.timer = time.AfterFunc(device.completeWayDuration, func() {
-		if err := device.closePin.Out(gpio.Low); err != nil {
-			//TODO: handle error..
-		}
-		if err := device.openPin.Out(gpio.Low); err != nil {
-			//TODO: handle error..
-		}
-		if err := c.stateStore.UpdateShutterState(shutterID, "stopped"); err != nil {
-			//TODO: handle error..
+		if err := c.StopShutter(shutterID); err != nil {
+			//TODO: Handle error
 		}
 	})
-	device.Unlock()
 	return nil
 }
 
@@ -161,6 +155,7 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -175,17 +170,10 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	}
 
 	device.timer = time.AfterFunc(device.completeWayDuration, func() {
-		if err := device.closePin.Out(gpio.Low); err != nil {
-			//TODO: handle error
-		}
-		if err := device.openPin.Out(gpio.Low); err != nil {
-			//TODO: handle error
-		}
-		if err := c.stateStore.UpdateShutterState(shutterID, "stopped"); err != nil {
-			//TODO: handle error..
+		if err := c.StopShutter(shutterID); err != nil {
+			//TODO: Handle error
 		}
 	})
-	device.Unlock()
 	return nil
 }
 
@@ -195,6 +183,7 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -207,7 +196,6 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 	if err := c.stateStore.UpdateShutterState(shutterID, "stopped"); err != nil {
 		return err
 	}
-	device.Unlock()
 	return nil
 }
 
@@ -217,6 +205,7 @@ func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	device.openJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", shutter.OpenTime.Hour(), shutter.OpenTime.Minute())).Run(func() {
 		c.OpenShutter(shutter.ID)
 	})
@@ -229,7 +218,6 @@ func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
 	if err != nil {
 		return err
 	}
-	device.Unlock()
 	return nil
 }
 
@@ -276,6 +264,7 @@ func (c *EmbeddedController) changeShutterPins(diffs model.DifferenceType, updat
 		return err
 	}
 	shutter.Lock()
+	defer shutter.Unlock()
 	if diffs.HasFlag(model.DIFFOPENPIN) {
 		if c.simulate {
 			shutter.openPin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.OpenPin}
@@ -293,6 +282,5 @@ func (c *EmbeddedController) changeShutterPins(diffs model.DifferenceType, updat
 			shutter.closePin = gpioreg.ByNumber(*updatedShutter.ClosePin)
 		}
 	}
-	shutter.Unlock()
 	return nil
 }

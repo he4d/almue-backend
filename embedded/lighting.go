@@ -109,13 +109,13 @@ func (c *EmbeddedController) TurnLightingOn(lightingID int64) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	if err := device.switchPin.Out(gpio.High); err != nil {
 		return err
 	}
 	if err := c.stateStore.UpdateLightingState(lightingID, "on"); err != nil {
 		return err
 	}
-	device.Unlock()
 	return nil
 }
 
@@ -125,13 +125,13 @@ func (c *EmbeddedController) TurnLightingOff(lightingID int64) error {
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	if err := device.switchPin.Out(gpio.Low); err != nil {
 		return err
 	}
 	if err := c.stateStore.UpdateLightingState(lightingID, "off"); err != nil {
 		return err
 	}
-	device.Unlock()
 	return nil
 }
 
@@ -141,6 +141,7 @@ func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) erro
 		return err
 	}
 	device.Lock()
+	defer device.Unlock()
 	device.onJob, err = scheduler.Every().Day().At(fmt.Sprintf("%02d:%02d", lighting.OnTime.Hour(), lighting.OnTime.Minute())).Run(func() {
 		c.TurnLightingOn(lighting.ID)
 	})
@@ -153,7 +154,6 @@ func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) erro
 	if err != nil {
 		return err
 	}
-	device.Unlock()
 	return nil
 }
 

@@ -29,6 +29,7 @@ func (a *Almue) floorCtx(next http.Handler) http.Handler {
 		floor, err := a.store.GetFloor(floorID)
 		if err != nil {
 			http.Error(w, http.StatusText(404), 404)
+			a.logger.Debug.Printf("Failed to put floor to context: %v", err)
 			return
 		}
 		ctx := context.WithValue(r.Context(), floorCtxKey, floor)
@@ -42,6 +43,7 @@ func (a *Almue) shutterCtx(next http.Handler) http.Handler {
 		shutter, err := a.store.GetShutter(shutterID)
 		if err != nil {
 			http.Error(w, http.StatusText(404), 404)
+			a.logger.Debug.Printf("Failed to put shutter to context: %v", err)
 			return
 		}
 		ctx := context.WithValue(r.Context(), shutterCtxKey, shutter)
@@ -55,6 +57,7 @@ func (a *Almue) lightingCtx(next http.Handler) http.Handler {
 		lighting, err := a.store.GetLighting(lightingID)
 		if err != nil {
 			http.Error(w, http.StatusText(404), 404)
+			a.logger.Debug.Printf("Failed to put lighting to context: %v", err)
 			return
 		}
 		ctx := context.WithValue(r.Context(), lightingCtxKey, lighting)
