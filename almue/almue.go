@@ -1,11 +1,14 @@
 package almue
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/docgen"
@@ -18,6 +21,7 @@ import (
 // Almue holds all the fields for the complete Application Context
 type Almue struct {
 	router           chi.Router
+	server           *http.Server
 	store            DeviceStore
 	deviceController DeviceController
 	simulate         bool
@@ -37,8 +41,26 @@ func New(store DeviceStore, deviceController DeviceController, logger *simplejac
 }
 
 // Serve must be called to start the Almue backend
-func (a *Almue) Serve(addr string) {
-	log.Fatal(http.ListenAndServe(addr, a.router))
+// if an error occured on calling listenAndServe the returned
+// error chan will contain the error message
+func (a *Almue) Serve(addr string) <-chan error {
+	serveErrorChan := make(chan error)
+	go func() {
+		a.server = &http.Server{Addr: addr, Handler: a.router}
+		if err := a.server.ListenAndServe(); err != nil {
+			serveErrorChan <- err
+		}
+	}()
+	return serveErrorChan
+}
+
+func (a *Almue) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := a.server.Shutdown(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 //GenerateRoutesDoc generates a markdown documentation of the API routes

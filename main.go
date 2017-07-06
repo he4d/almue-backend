@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/he4d/almue/almue"
 	"github.com/he4d/almue/embedded"
@@ -52,9 +53,33 @@ func main() {
 	}
 
 	almue := almue.New(store, deviceController, logger, *publicAPI)
+
 	if *routes {
 		almue.GenerateRoutesDoc()
 		return
 	}
-	almue.Serve(":8000")
+
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, os.Interrupt, os.Kill)
+
+	shutdownApp := func() {
+		logger.Trace.Println("Shutting down..")
+		if err := almue.Shutdown(); err != nil {
+			logger.Fatal.Fatalf("Could not shutdown the http server: %v", err)
+		}
+		if err := store.Close(); err != nil {
+			logger.Fatal.Fatalf("Could not close the store: %v", err)
+		}
+		logger.Trace.Println("Exiting almue")
+	}
+
+	serveErrorChan := almue.Serve(":8000")
+
+	select {
+	case httpError := <-serveErrorChan:
+		logger.Error.Printf("HTTP Server error: %v", httpError)
+		shutdownApp()
+	case <-stopChan:
+		shutdownApp()
+	}
 }
