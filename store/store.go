@@ -21,7 +21,7 @@ func New(path string, logger *simplejack.Logger) (*Datastore, error) {
 	if err := setupDatabase(db); err != nil {
 		return nil, err
 	}
-	return &Datastore{DB: db}, nil
+	return &Datastore{DB: db, logger: logger}, nil
 }
 
 func setupDatabase(db *sql.DB) error {
