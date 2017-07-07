@@ -32,11 +32,9 @@ type Almue struct {
 // New initializes a new Almue struct, initializes it and return it
 func New(store DeviceStore, deviceController DeviceController, logger *simplejack.Logger, publicAPI bool) (*Almue, error) {
 	app := &Almue{store: store, deviceController: deviceController, logger: logger, publicAPI: publicAPI}
-	logger.Info.Print("Initializing the application")
 	if err := app.initialize(); err != nil {
 		return nil, err
 	}
-	logger.Info.Print("Successfully initialized the application")
 	return app, nil
 }
 
@@ -55,13 +53,13 @@ func (a *Almue) Serve(addr string) <-chan error {
 }
 
 func (a *Almue) Shutdown() {
-	a.logger.Info.Print("Shutting down the Almue server..")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
 		a.logger.Error.Printf("Could not shutdown the server: %v", err)
 		return
 	}
+	a.logger.Info.Print("almue server stopped successfully")
 }
 
 //GenerateRoutesDoc generates a markdown documentation of the API routes

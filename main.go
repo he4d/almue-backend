@@ -22,6 +22,8 @@ var (
 	logToStdout = flag.Bool("logtostdout", false, "set this to true to get logging to the stdout instead of a logfile")
 )
 
+const serverAddr = ":8000"
+
 func main() {
 	flag.Parse()
 	if *logLevel < 0 || *logLevel > 5 {
@@ -47,7 +49,6 @@ func main() {
 		logger.Error.Printf("Could not create a new store: %v", err)
 		return
 	}
-	defer store.Shutdown()
 
 	deviceController, err := embedded.New(logger, store, *simulate)
 	if err != nil {
@@ -60,7 +61,6 @@ func main() {
 		logger.Error.Printf("Could not create a new instance of almue: %v", err)
 		return
 	}
-	defer almue.Shutdown()
 
 	if *routes {
 		almue.GenerateRoutesDoc()
@@ -70,12 +70,14 @@ func main() {
 	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, os.Interrupt)
 
-	serveError := almue.Serve(":8000")
+	serveError := almue.Serve(serverAddr)
+	logger.Info.Printf("server listening on %s", serverAddr)
 
 	select {
 	case httpError := <-serveError:
-		logger.Error.Printf("HTTP Server error: %v", httpError)
+		logger.Error.Printf("http server error: %v", httpError)
 	case <-stopChan:
-		logger.Info.Println("SIGINT ocurred.. shutting down almue..")
+		logger.Info.Println("sigint ocurred.. shutting down almue..")
+		almue.Shutdown()
 	}
 }
