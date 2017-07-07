@@ -44,15 +44,23 @@ func main() {
 
 	store, err := store.New("./almue.db", logger)
 	if err != nil {
-		logger.Fatal.Fatalf("Could not create a new store: %v", err)
+		logger.Error.Printf("Could not create a new store: %v", err)
+		return
 	}
+	defer store.Shutdown()
 
 	deviceController, err := embedded.New(logger, store, *simulate)
 	if err != nil {
-		logger.Fatal.Fatalf("Could not create a new device controller: %v", err)
+		logger.Error.Printf("Could not create a new device controller: %v", err)
+		return
 	}
 
-	almue := almue.New(store, deviceController, logger, *publicAPI)
+	almue, err := almue.New(store, deviceController, logger, *publicAPI)
+	if err != nil {
+		logger.Error.Printf("Could not create a new instance of almue: %v", err)
+		return
+	}
+	defer almue.Shutdown()
 
 	if *routes {
 		almue.GenerateRoutesDoc()
@@ -60,26 +68,14 @@ func main() {
 	}
 
 	stopChan := make(chan os.Signal, 1)
-	signal.Notify(stopChan, os.Interrupt, os.Kill)
+	signal.Notify(stopChan, os.Interrupt)
 
-	shutdownApp := func() {
-		logger.Trace.Println("Shutting down..")
-		if err := almue.Shutdown(); err != nil {
-			logger.Fatal.Fatalf("Could not shutdown the http server: %v", err)
-		}
-		if err := store.Close(); err != nil {
-			logger.Fatal.Fatalf("Could not close the store: %v", err)
-		}
-		logger.Trace.Println("Exiting almue")
-	}
-
-	serveErrorChan := almue.Serve(":8000")
+	serveError := almue.Serve(":8000")
 
 	select {
-	case httpError := <-serveErrorChan:
+	case httpError := <-serveError:
 		logger.Error.Printf("HTTP Server error: %v", httpError)
-		shutdownApp()
 	case <-stopChan:
-		shutdownApp()
+		logger.Info.Println("SIGINT ocurred.. shutting down almue..")
 	}
 }

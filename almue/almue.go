@@ -30,37 +30,38 @@ type Almue struct {
 }
 
 // New initializes a new Almue struct, initializes it and return it
-func New(store DeviceStore, deviceController DeviceController, logger *simplejack.Logger, publicAPI bool) *Almue {
+func New(store DeviceStore, deviceController DeviceController, logger *simplejack.Logger, publicAPI bool) (*Almue, error) {
 	app := &Almue{store: store, deviceController: deviceController, logger: logger, publicAPI: publicAPI}
 	logger.Info.Print("Initializing the application")
 	if err := app.initialize(); err != nil {
-		logger.Fatal.Fatal(err)
+		return nil, err
 	}
 	logger.Info.Print("Successfully initialized the application")
-	return app
+	return app, nil
 }
 
 // Serve must be called to start the Almue backend
-// if an error occured on calling listenAndServe the returned
+// if an error occured on calling ListenAndServe the returned
 // error chan will contain the error message
 func (a *Almue) Serve(addr string) <-chan error {
-	serveErrorChan := make(chan error)
+	serveError := make(chan error)
 	go func() {
 		a.server = &http.Server{Addr: addr, Handler: a.router}
 		if err := a.server.ListenAndServe(); err != nil {
-			serveErrorChan <- err
+			serveError <- err
 		}
 	}()
-	return serveErrorChan
+	return serveError
 }
 
-func (a *Almue) Shutdown() error {
+func (a *Almue) Shutdown() {
+	a.logger.Info.Print("Shutting down the Almue server..")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := a.server.Shutdown(ctx); err != nil {
-		return err
+		a.logger.Error.Printf("Could not shutdown the server: %v", err)
+		return
 	}
-	return nil
 }
 
 //GenerateRoutesDoc generates a markdown documentation of the API routes
