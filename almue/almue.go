@@ -143,6 +143,9 @@ func (a *Almue) initializeRouter() error {
 	a.router.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
 			r.Use(apiVersionCtx("v1"))
+			r.Route("/manage", func(r chi.Router) {
+				r.Get("/logfile", a.getLogfile)
+			})
 			r.Route("/shutters", func(r chi.Router) {
 				r.Get("/", a.getAllShutters)
 				r.Post("/", a.createShutter)
@@ -226,4 +229,8 @@ func fileServer(r chi.Router, path string, root http.FileSystem) {
 	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	}))
+}
+
+func (a *Almue) getLogfile(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "almue.log")
 }

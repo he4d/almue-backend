@@ -45,7 +45,11 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, ok := ctx.Value(floorCtxKey).(*model.Floor)
+	if !ok {
+		a.logger.Error.Print("Floor from context is not a floor?")
+		return
+	}
 
 	if err := render.Render(w, r, a.newFloorPayloadResponse(floor)); err != nil {
 		render.Render(w, r, ErrRender(err))
@@ -55,7 +59,11 @@ func (a *Almue) getFloor(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, ok := ctx.Value(floorCtxKey).(*model.Floor)
+	if !ok {
+		a.logger.Error.Print("Floor from context is not a floor?")
+		return
+	}
 	oldFloor := floor.DeepCopy()
 
 	f := &floorPayload{Floor: floor}
@@ -86,7 +94,11 @@ func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, ok := ctx.Value(floorCtxKey).(*model.Floor)
+	if !ok {
+		a.logger.Error.Print("Floor from context is not a floor?")
+		return
+	}
 
 	shutters, err := a.store.GetShutterListOfFloor(floor.ID)
 	if err != nil {

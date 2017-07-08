@@ -11,7 +11,11 @@ import (
 
 func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, ok := ctx.Value(floorCtxKey).(*model.Floor)
+	if !ok {
+		a.logger.Error.Print("Floor from context is not a floor?")
+		return
+	}
 
 	lightings, err := a.store.GetLightingListOfFloor(floor.ID)
 	if err != nil {
@@ -38,7 +42,11 @@ func (a *Almue) getAllLightings(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) getLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	lighting, ok := ctx.Value(lightingCtxKey).(*model.Lighting)
+	if !ok {
+		a.logger.Error.Print("Lighting from context is not a lighting?")
+		return
+	}
 
 	render.Render(w, r, a.newLightingPayloadResponse(lighting))
 }
@@ -80,7 +88,11 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	lighting, ok := ctx.Value(lightingCtxKey).(*model.Lighting)
+	if !ok {
+		a.logger.Error.Print("Lighting from context is not a lighting?")
+		return
+	}
 	oldLighting := lighting.DeepCopy()
 
 	l := &lightingPayload{Lighting: lighting}
@@ -117,7 +129,11 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting := ctx.Value(lightingCtxKey).(*model.Lighting)
+	lighting, ok := ctx.Value(lightingCtxKey).(*model.Lighting)
+	if !ok {
+		a.logger.Error.Print("Lighting from context is not a lighting?")
+		return
+	}
 
 	if err := a.store.DeleteLighting(lighting.ID); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
@@ -134,7 +150,11 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting := ctx.Value(shutterCtxKey).(*model.Lighting)
+	lighting, ok := ctx.Value(shutterCtxKey).(*model.Lighting)
+	if !ok {
+		a.logger.Error.Print("Lighting from context is not a lighting?")
+		return
+	}
 
 	if lighting.Disabled {
 		render.Render(w, r, ErrInvalidRequest(errors.New("Device is disabled for controlling")))

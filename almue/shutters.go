@@ -11,7 +11,11 @@ import (
 
 func (a *Almue) getAllShuttersOfFloor(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	floor := ctx.Value(floorCtxKey).(*model.Floor)
+	floor, ok := ctx.Value(floorCtxKey).(*model.Floor)
+	if !ok {
+		a.logger.Error.Print("Floor from context is not a floor?")
+		return
+	}
 
 	shutters, err := a.store.GetShutterListOfFloor(floor.ID)
 	if err != nil {
@@ -38,7 +42,11 @@ func (a *Almue) getAllShutters(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) getShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	shutter, ok := ctx.Value(shutterCtxKey).(*model.Shutter)
+	if !ok {
+		a.logger.Error.Print("Shutter from context is not a shutter?")
+		return
+	}
 
 	render.Render(w, r, a.newShutterPayloadResponse(shutter))
 }
@@ -80,7 +88,12 @@ func (a *Almue) createShutter(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) updateShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	shutter, ok := ctx.Value(shutterCtxKey).(*model.Shutter)
+	if !ok {
+		a.logger.Error.Print("Shutter from context is not a shutter?")
+		return
+	}
+
 	oldShutter := shutter.DeepCopy()
 
 	s := &shutterPayload{Shutter: shutter}
@@ -119,7 +132,7 @@ func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	shutter, ok := ctx.Value(shutterCtxKey).(*model.Shutter)
 	if !ok {
-		http.Error(w, http.StatusText(422), 422)
+		a.logger.Error.Print("Shutter from context is not a shutter?")
 		return
 	}
 
@@ -138,7 +151,11 @@ func (a *Almue) deleteShutter(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) controlShutter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	shutter := ctx.Value(shutterCtxKey).(*model.Shutter)
+	shutter, ok := ctx.Value(shutterCtxKey).(*model.Shutter)
+	if !ok {
+		a.logger.Error.Print("Shutter from context is not a shutter?")
+		return
+	}
 
 	if shutter.Disabled {
 		render.Render(w, r, ErrInvalidRequest(errors.New("Device is disabled for controlling")))
