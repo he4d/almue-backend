@@ -10,6 +10,8 @@ import (
 
 	"time"
 
+	"io/ioutil"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/docgen"
 	"github.com/go-chi/chi/middleware"
@@ -145,6 +147,10 @@ func (a *Almue) initializeRouter() error {
 			r.Use(apiVersionCtx("v1"))
 			r.Route("/manage", func(r chi.Router) {
 				r.Get("/logfile", a.getLogfile)
+				r.Route("/db", func(r chi.Router) {
+					r.Get("/backup", a.retrieveStoreBackup)
+					r.Post("/backup", a.restoreStoreBackup)
+				})
 			})
 			r.Route("/shutters", func(r chi.Router) {
 				r.Get("/", a.getAllShutters)
@@ -232,5 +238,34 @@ func fileServer(r chi.Router, path string, root http.FileSystem) {
 }
 
 func (a *Almue) getLogfile(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "almue.log")
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	file, err := ioutil.ReadFile("almue.log")
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+		return
+	}
+	w.Write(file)
+}
+
+func (a *Almue) retrieveStoreBackup(w http.ResponseWriter, r *http.Request) {
+	file, err := a.store.GetBackup()
+	if err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"almue.db\"")
+	w.WriteHeader(http.StatusOK)
+	w.Write(file)
+}
+
+func (a *Almue) restoreStoreBackup(w http.ResponseWriter, r *http.Request) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+	}
+	if err := a.store.RestoreBackup(data); err != nil {
+		render.Render(w, r, ErrInternalServer(err))
+	}
+	render.NoContent(w, r)
 }

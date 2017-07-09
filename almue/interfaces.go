@@ -37,6 +37,10 @@ type DeviceStore interface {
 	UpdateLighting(*model.Lighting) error
 
 	DeleteLighting(int64) error
+
+	GetBackup() ([]byte, error)
+
+	RestoreBackup([]byte) error
 }
 
 // DeviceController must be implemented by the device controller
