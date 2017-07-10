@@ -63,7 +63,7 @@ func (d *Datastore) CreateLighting(l *model.Lighting) (int64, error) {
 		lightingCreateStmt,
 		l.Description, l.SwitchPin, l.JobsEnabled,
 		l.OnTime.UTC(), l.OffTime.UTC(), l.EmergencyEnabled,
-		l.DeviceStatus, l.Disabled, l.FloorID)
+		"off", l.Disabled, l.FloorID)
 
 	if err != nil {
 		return 0, err

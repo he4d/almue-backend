@@ -81,7 +81,7 @@ func (d *Datastore) CreateShutter(s *model.Shutter) (int64, error) {
 		shutterCreateStmt,
 		s.Description, s.OpenPin, s.ClosePin, s.CompleteWayInSeconds,
 		s.JobsEnabled, s.OpenTime.UTC(), s.CloseTime.UTC(), s.EmergencyEnabled,
-		s.DeviceStatus, s.Disabled, s.FloorID)
+		"stopped", s.Disabled, s.FloorID)
 	if err != nil {
 		return 0, err
 	}
