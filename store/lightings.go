@@ -136,7 +136,7 @@ WHERE id = ?
 `
 
 var lightingByIDStmt = `
-SELECT * FROM lighting WHERE id = ?
+SELECT * FROM lightings WHERE id = ?
 `
 
 var lightingCreateStmt = `
