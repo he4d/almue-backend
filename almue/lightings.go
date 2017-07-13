@@ -150,7 +150,7 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 
 func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lighting, ok := ctx.Value(shutterCtxKey).(*model.Lighting)
+	lighting, ok := ctx.Value(lightingCtxKey).(*model.Lighting)
 	if !ok {
 		a.logger.Error.Print("Lighting from context is not a lighting?")
 		return
