@@ -2,6 +2,7 @@ package almue
 
 import (
 	"context"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"io/ioutil"
+
+	"bytes"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/docgen"
@@ -260,12 +263,25 @@ func (a *Almue) retrieveStoreBackup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Almue) restoreStoreBackup(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+	readForm, err := r.MultipartReader()
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-	}
-	if err := a.store.RestoreBackup(data); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
 	}
-	render.NoContent(w, r)
+	for {
+		part, err := readForm.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if part.FormName() == "dbfile" {
+			buf := new(bytes.Buffer)
+			if _, err := buf.ReadFrom(part); err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+			if err := a.store.RestoreBackup(buf.Bytes()); err != nil {
+				render.Render(w, r, ErrInternalServer(err))
+			}
+			render.NoContent(w, r)
+		}
+	}
+	render.Render(w, r, ErrInvalidRequest(err))
 }
