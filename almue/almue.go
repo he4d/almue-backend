@@ -2,7 +2,6 @@ package almue
 
 import (
 	"context"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -12,8 +11,6 @@ import (
 	"time"
 
 	"io/ioutil"
-
-	"bytes"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/docgen"
@@ -152,7 +149,6 @@ func (a *Almue) initializeRouter() error {
 				r.Get("/logfile", a.getLogfile)
 				r.Route("/db", func(r chi.Router) {
 					r.Get("/backup", a.retrieveStoreBackup)
-					r.Post("/backup", a.restoreStoreBackup)
 				})
 			})
 			r.Route("/shutters", func(r chi.Router) {
@@ -260,28 +256,4 @@ func (a *Almue) retrieveStoreBackup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=\"almue.db\"")
 	w.WriteHeader(http.StatusOK)
 	w.Write(file)
-}
-
-func (a *Almue) restoreStoreBackup(w http.ResponseWriter, r *http.Request) {
-	readForm, err := r.MultipartReader()
-	if err != nil {
-		render.Render(w, r, ErrInternalServer(err))
-	}
-	for {
-		part, err := readForm.NextPart()
-		if err == io.EOF {
-			break
-		}
-		if part.FormName() == "dbfile" {
-			buf := new(bytes.Buffer)
-			if _, err := buf.ReadFrom(part); err != nil {
-				render.Render(w, r, ErrInternalServer(err))
-			}
-			if err := a.store.RestoreBackup(buf.Bytes()); err != nil {
-				render.Render(w, r, ErrInternalServer(err))
-			}
-			render.NoContent(w, r)
-		}
-	}
-	render.Render(w, r, ErrInvalidRequest(err))
 }
