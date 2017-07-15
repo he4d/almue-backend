@@ -20,6 +20,14 @@ type shutter struct {
 	closeJob            *scheduler.Job
 	completeWayDuration time.Duration
 	timer               *time.Timer
+	ticker              *time.Ticker
+	openingInPrc        float64
+}
+
+// getTickDurationMs calculates how many milliseconds it needs for 5% of moving the shutter up or down
+func (s shutter) getTickDuration() time.Duration {
+	calc := (s.completeWayDuration.Seconds() / 100.0) * 1000.0 * 5.0
+	return time.Millisecond * time.Duration(calc)
 }
 
 func (c *EmbeddedController) RegisterShutters(shutters ...*model.Shutter) error {
@@ -38,6 +46,7 @@ func (c *EmbeddedController) RegisterShutters(shutters ...*model.Shutter) error 
 			openPin:             openPin,
 			closePin:            closePin,
 			completeWayDuration: duration,
+			openingInPrc:        shutterModel.OpeningInPrc,
 		}
 
 		c.shuttersLock.Lock()
@@ -129,6 +138,9 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 	}
 	device.Lock()
 	defer device.Unlock()
+	if device.ticker != nil {
+		device.ticker.Stop()
+	}
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -138,14 +150,39 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 	if err := device.openPin.Out(gpio.High); err != nil {
 		return err
 	}
-	if err := c.stateStore.UpdateShutterState(shutterID, "opening"); err != nil {
-		return err
-	}
-	device.timer = time.AfterFunc(device.completeWayDuration, func() {
-		if err := c.StopShutter(shutterID); err != nil {
-			//TODO: Handle error
+	if device.openingInPrc == 100.0 {
+		// REFERENCE DRIVE
+		if err := c.stateStore.UpdateShutterState(shutterID, "referencing"); err != nil {
+			return err
 		}
-	})
+		device.timer = time.AfterFunc(device.completeWayDuration, func() {
+			if err := c.StopShutter(shutterID); err != nil {
+				//TODO: Handle error
+			}
+		})
+	} else {
+		// NORMAL DRIVE
+		if err := c.stateStore.UpdateShutterState(shutterID, "opening"); err != nil {
+			return err
+		}
+		device.ticker = time.NewTicker(device.getTickDuration())
+		go func() {
+			for _ = range device.ticker.C {
+				device.openingInPrc += 5.0
+				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
+					//TODO: Handle error
+				}
+				if device.openingInPrc == 100.0 {
+					if err := c.StopShutter(shutterID); err != nil {
+						//TODO: Handle error
+					}
+					device.ticker.Stop()
+					device.ticker = nil
+					return
+				}
+			}
+		}()
+	}
 	return nil
 }
 
@@ -156,6 +193,9 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	}
 	device.Lock()
 	defer device.Unlock()
+	if device.ticker != nil {
+		device.ticker.Stop()
+	}
 	if device.timer != nil {
 		device.timer.Stop()
 	}
@@ -165,15 +205,38 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	if err := device.closePin.Out(gpio.High); err != nil {
 		return err
 	}
-	if err := c.stateStore.UpdateShutterState(shutterID, "closing"); err != nil {
-		return err
-	}
-
-	device.timer = time.AfterFunc(device.completeWayDuration, func() {
-		if err := c.StopShutter(shutterID); err != nil {
-			//TODO: Handle error
+	if device.openingInPrc == 0.0 {
+		if err := c.stateStore.UpdateShutterState(shutterID, "referencing"); err != nil {
+			return err
 		}
-	})
+		device.timer = time.AfterFunc(device.completeWayDuration, func() {
+			if err := c.StopShutter(shutterID); err != nil {
+				//TODO: Handle error
+			}
+		})
+	} else {
+		// NORMAL DRIVE
+		if err := c.stateStore.UpdateShutterState(shutterID, "closing"); err != nil {
+			return err
+		}
+		device.ticker = time.NewTicker(device.getTickDuration())
+		go func() {
+			for _ = range device.ticker.C {
+				device.openingInPrc -= 5.0
+				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
+					//TODO: Handle error
+				}
+				if device.openingInPrc == 0.0 {
+					if err := c.StopShutter(shutterID); err != nil {
+						//TODO: Handle error
+					}
+					device.ticker.Stop()
+					device.ticker = nil
+					return
+				}
+			}
+		}()
+	}
 	return nil
 }
 
@@ -184,6 +247,9 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 	}
 	device.Lock()
 	defer device.Unlock()
+	if device.ticker != nil {
+		device.ticker.Stop()
+	}
 	if device.timer != nil {
 		device.timer.Stop()
 	}

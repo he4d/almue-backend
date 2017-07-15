@@ -11,6 +11,7 @@ type Shutter struct {
 	OpenPin              *int      `json:"openPin"`
 	ClosePin             *int      `json:"closePin"`
 	CompleteWayInSeconds *int      `json:"completeWayInSeconds"`
+	OpeningInPrc         float64   `json:"openingInPrc"`
 	JobsEnabled          bool      `json:"jobsEnabled"`
 	OpenTime             time.Time `json:"openTime"`
 	CloseTime            time.Time `json:"closeTime"`
@@ -35,6 +36,7 @@ func (s *Shutter) DeepCopy() *Shutter {
 		OpenPin:              &openPin,
 		ClosePin:             &closePin,
 		CompleteWayInSeconds: &completeWayInSecs,
+		OpeningInPrc:         s.OpeningInPrc,
 		JobsEnabled:          s.JobsEnabled,
 		OpenTime:             s.OpenTime,
 		CloseTime:            s.CloseTime,

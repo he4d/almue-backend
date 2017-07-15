@@ -12,7 +12,7 @@ func (d *Datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	err := d.QueryRow(shutterByIDStmt, shutterID).Scan(
 		&s.ID, &s.Created, &s.Modified, &s.Description,
 		&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-		&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
+		&s.OpeningInPrc, &s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 		&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 		&s.FloorID)
 
@@ -38,7 +38,7 @@ func (d *Datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, erro
 		if err := rows.Scan(
 			&s.ID, &s.Created, &s.Modified, &s.Description,
 			&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-			&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
+			&s.OpeningInPrc, &s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 			&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 			&s.FloorID); err != nil {
 			return nil, err
@@ -65,7 +65,7 @@ func (d *Datastore) GetShutterList() ([]*model.Shutter, error) {
 		if err := rows.Scan(
 			&s.ID, &s.Created, &s.Modified, &s.Description,
 			&s.OpenPin, &s.ClosePin, &s.CompleteWayInSeconds,
-			&s.JobsEnabled, &s.OpenTime, &s.CloseTime,
+			&s.OpeningInPrc, &s.JobsEnabled, &s.OpenTime, &s.CloseTime,
 			&s.EmergencyEnabled, &s.DeviceStatus, &s.Disabled,
 			&s.FloorID); err != nil {
 			return nil, err
@@ -123,6 +123,12 @@ func (d *Datastore) UpdateShutterState(shutterID int64, newState string) error {
 	return err
 }
 
+func (d *Datastore) UpdateShutterOpening(shutterID int64, openingInPrc float64) error {
+	_, err :=
+		d.Exec(shutterOpeningInPrcUpdateStmt, openingInPrc, shutterID)
+	return err
+}
+
 var shutterByIDStmt = `
 SELECT * FROM shutters WHERE id = ?
 `
@@ -138,6 +144,12 @@ SELECT * FROM shutters
 var shutterStateUpdateStmt = `
 UPDATE shutters SET
 device_status = ? 
+WHERE id = ?
+`
+
+var shutterOpeningInPrcUpdateStmt = `
+UPDATE shutters SET
+opening_in_prc = ?
 WHERE id = ?
 `
 

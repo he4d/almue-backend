@@ -5,4 +5,6 @@ type DeviceStateStore interface {
 	UpdateLightingState(int64, string) error
 
 	UpdateShutterState(int64, string) error
+
+	UpdateShutterOpening(int64, float64) error
 }
