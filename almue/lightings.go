@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/render"
+	"github.com/go-chi/render"
 	"github.com/he4d/almue/model"
 )
 
