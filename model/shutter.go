@@ -11,7 +11,7 @@ type Shutter struct {
 	OpenPin              *int      `json:"openPin"`
 	ClosePin             *int      `json:"closePin"`
 	CompleteWayInSeconds *int      `json:"completeWayInSeconds"`
-	OpeningInPrc         float64   `json:"openingInPrc"`
+	OpeningInPrc         int       `json:"openingInPrc"`
 	JobsEnabled          bool      `json:"jobsEnabled"`
 	OpenTime             time.Time `json:"openTime"`
 	CloseTime            time.Time `json:"closeTime"`

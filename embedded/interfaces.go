@@ -6,5 +6,5 @@ type DeviceStateStore interface {
 
 	UpdateShutterState(int64, string) error
 
-	UpdateShutterOpening(int64, float64) error
+	UpdateShutterOpening(int64, int) error
 }

@@ -21,12 +21,12 @@ type shutter struct {
 	completeWayDuration time.Duration
 	timer               *time.Timer
 	ticker              *time.Ticker
-	openingInPrc        float64
+	openingInPrc        int
 }
 
 // getTickDurationMs calculates how many milliseconds it needs for 5% of moving the shutter up or down
 func (s shutter) getTickDuration() time.Duration {
-	calc := (s.completeWayDuration.Seconds() / 100.0) * 1000.0 * 5.0
+	calc := (s.completeWayDuration.Seconds() * 5.0 / 100.0) * 1000.0
 	return time.Millisecond * time.Duration(calc)
 }
 
@@ -168,11 +168,11 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 		device.ticker = time.NewTicker(device.getTickDuration())
 		go func() {
 			for _ = range device.ticker.C {
-				device.openingInPrc += 5.0
+				device.openingInPrc += 5
 				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
 					//TODO: Handle error
 				}
-				if device.openingInPrc == 100.0 {
+				if device.openingInPrc == 100 {
 					if err := c.StopShutter(shutterID); err != nil {
 						//TODO: Handle error
 					}
@@ -205,7 +205,7 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	if err := device.closePin.Out(gpio.High); err != nil {
 		return err
 	}
-	if device.openingInPrc == 0.0 {
+	if device.openingInPrc == 0 {
 		if err := c.stateStore.UpdateShutterState(shutterID, "referencing"); err != nil {
 			return err
 		}
@@ -222,11 +222,11 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 		device.ticker = time.NewTicker(device.getTickDuration())
 		go func() {
 			for _ = range device.ticker.C {
-				device.openingInPrc -= 5.0
+				device.openingInPrc -= 5
 				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
 					//TODO: Handle error
 				}
-				if device.openingInPrc == 0.0 {
+				if device.openingInPrc == 0 {
 					if err := c.StopShutter(shutterID); err != nil {
 						//TODO: Handle error
 					}

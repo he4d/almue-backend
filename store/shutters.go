@@ -123,7 +123,7 @@ func (d *Datastore) UpdateShutterState(shutterID int64, newState string) error {
 	return err
 }
 
-func (d *Datastore) UpdateShutterOpening(shutterID int64, openingInPrc float64) error {
+func (d *Datastore) UpdateShutterOpening(shutterID int64, openingInPrc int) error {
 	_, err :=
 		d.Exec(shutterOpeningInPrcUpdateStmt, openingInPrc, shutterID)
 	return err
