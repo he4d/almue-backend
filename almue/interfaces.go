@@ -39,8 +39,6 @@ type DeviceStore interface {
 	DeleteLighting(int64) error
 
 	GetBackup() ([]byte, error)
-
-	RestoreBackup([]byte) error
 }
 
 // DeviceController must be implemented by the device controller

@@ -2,7 +2,6 @@ package almue
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -72,7 +71,7 @@ func (a *Almue) GenerateRoutesDoc() {
 	}))
 	f, err := os.Create("./doc/ROUTES.md")
 	if err != nil {
-		log.Fatal(err)
+		a.logger.Fatal.Fatal(err)
 	}
 	defer f.Close()
 
@@ -241,6 +240,7 @@ func (a *Almue) getLogfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	file, err := ioutil.ReadFile("almue.log")
 	if err != nil {
+		a.logger.Error.Printf("Could not read logfile: %v", err)
 		render.Render(w, r, ErrInternalServer(err))
 		return
 	}
@@ -250,6 +250,7 @@ func (a *Almue) getLogfile(w http.ResponseWriter, r *http.Request) {
 func (a *Almue) retrieveStoreBackup(w http.ResponseWriter, r *http.Request) {
 	file, err := a.store.GetBackup()
 	if err != nil {
+		a.logger.Error.Printf("Could not get a database backup: %v", err)
 		render.Render(w, r, ErrInternalServer(err))
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
