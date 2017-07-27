@@ -130,7 +130,7 @@ func (d *Datastore) UpdateShutterState(shutterID int64, newState string) error {
 	return err
 }
 
-// UpdateShutterOpening updates the current openingwidth of the shutter with the provided id
+// UpdateShutterOpening updates the current openingwidth of the shutter with the provided idd
 func (d *Datastore) UpdateShutterOpening(shutterID int64, openingInPrc int) error {
 	_, err :=
 		d.Exec(shutterOpeningInPrcUpdateStmt, openingInPrc, shutterID)
