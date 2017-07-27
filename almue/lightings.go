@@ -20,11 +20,13 @@ func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {
 	lightings, err := a.store.GetLightingListOfFloor(floor.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := render.RenderList(w, r, a.newLightingListPayloadResponse(lightings)); err != nil {
 		render.Render(w, r, ErrRender(err))
+		a.logger.Error.Print(err)
 	}
 }
 
@@ -32,11 +34,13 @@ func (a *Almue) getAllLightings(w http.ResponseWriter, r *http.Request) {
 	lightings, err := a.store.GetLightingList()
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := render.RenderList(w, r, a.newLightingListPayloadResponse(lightings)); err != nil {
 		render.Render(w, r, ErrRender(err))
+		a.logger.Error.Print(err)
 	}
 }
 
@@ -58,6 +62,7 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	l := &lightingPayload{}
 	if err := render.Bind(r, l); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 	}
 
 	if hasFloorCtx {
@@ -68,17 +73,20 @@ func (a *Almue) createLighting(w http.ResponseWriter, r *http.Request) {
 	l.ID, err = a.store.CreateLighting(l.Lighting)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	lighting, err := a.store.GetLighting(l.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := a.deviceController.RegisterLightings(lighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -98,29 +106,34 @@ func (a *Almue) updateLighting(w http.ResponseWriter, r *http.Request) {
 	l := &lightingPayload{Lighting: lighting}
 	if err := render.Bind(r, l); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if l.Lighting.ID != oldLighting.ID {
 		err := errors.New("Can not update the lighting to a different id")
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := a.store.UpdateLighting(l.Lighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	updatedLighting, err := a.store.GetLighting(l.Lighting.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	diffs := oldLighting.GetDifferences(updatedLighting)
 	if err := a.deviceController.UpdateLighting(diffs, updatedLighting); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -137,11 +150,13 @@ func (a *Almue) deleteLighting(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.store.DeleteLighting(lighting.ID); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := a.deviceController.UnregisterLighting(lighting.ID); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -157,7 +172,9 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if lighting.Disabled {
-		render.Render(w, r, ErrInvalidRequest(errors.New("Device is disabled for controlling")))
+		err := errors.New("Device is disabled for controlling")
+		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Info.Print(err)
 		return
 	}
 
@@ -166,17 +183,21 @@ func (a *Almue) controlLighting(w http.ResponseWriter, r *http.Request) {
 	case "on":
 		if err := a.deviceController.TurnLightingOn(lighting.ID); err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			a.logger.Error.Print(err)
 			return
 		}
 		break
 	case "off":
 		if err := a.deviceController.TurnLightingOff(lighting.ID); err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			a.logger.Error.Print(err)
 			return
 		}
 		break
 	default:
-		render.Render(w, r, ErrInvalidRequest(errors.New("Action not supported")))
+		err := errors.New("Action not supported")
+		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Info.Print(err)
 		return
 	}
 	render.NoContent(w, r)

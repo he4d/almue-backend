@@ -42,7 +42,7 @@ func (d *Datastore) GetBackup() ([]byte, error) {
 	var driverName = fmt.Sprintf("sqlite3_backup_%v", time.Now().UnixNano())
 	tmpFile, err := ioutil.TempFile("", "tmpDb")
 	if err != nil {
-		return nil, fmt.Errorf("Could not create the tempFile for creating the backup: %v", err)
+		return nil, err
 	}
 	defer os.Remove(tmpFile.Name())
 
@@ -60,23 +60,23 @@ func (d *Datastore) GetBackup() ([]byte, error) {
 	srcFileName := "almue.db"
 	srcDb, err := sql.Open(driverName, srcFileName)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open the source db: %v", err)
+		return nil, err
 	}
 	defer srcDb.Close()
 	err = srcDb.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to the source database: %v", err)
+		return nil, err
 	}
 
 	// Connect to the destination database.
 	destDb, err := sql.Open(driverName, tmpFile.Name())
 	if err != nil {
-		return nil, fmt.Errorf("Failed to open the destination database: %v", err)
+		return nil, err
 	}
 	defer destDb.Close()
 	err = destDb.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to the destination database: %v", err)
+		return nil, err
 	}
 
 	if len(driverConns) != 2 {
@@ -84,21 +84,21 @@ func (d *Datastore) GetBackup() ([]byte, error) {
 	}
 	srcDbDriverConn := driverConns[0]
 	if srcDbDriverConn == nil {
-		return nil, fmt.Errorf("The source database driver connection is nil")
+		return nil, err
 	}
 	destDbDriverConn := driverConns[1]
 	if destDbDriverConn == nil {
-		return nil, fmt.Errorf("The destination database driver connection is nil")
+		return nil, err
 	}
 
 	backup, err := destDbDriverConn.Backup("main", srcDbDriverConn, "main")
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize the backup: %v", err)
+		return nil, err
 	}
 
 	isDone, err := backup.Step(-1)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create the backup: %v", err)
+		return nil, err
 	}
 	if !isDone {
 		return nil, fmt.Errorf("Backup is unexpectedly not done")
@@ -106,16 +106,16 @@ func (d *Datastore) GetBackup() ([]byte, error) {
 
 	err = backup.Finish()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to finish backup: %v", err)
+		return nil, err
 	}
 
 	if err := tmpFile.Close(); err != nil {
-		return nil, fmt.Errorf("Could not close the tmpFile: %v", err)
+		return nil, err
 	}
 
 	bytes, err := ioutil.ReadFile(tmpFile.Name())
 	if err != nil {
-		return nil, fmt.Errorf("Could not read the backup file: %v", err)
+		return nil, err
 	}
 	return bytes, nil
 }

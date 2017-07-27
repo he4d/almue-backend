@@ -12,10 +12,12 @@ func (a *Almue) getAllFloors(w http.ResponseWriter, r *http.Request) {
 	floors, err := a.store.GetFloorList()
 	if err != nil {
 		render.Render(w, r, ErrRender(err))
+		a.logger.Error.Print(err)
 		return
 	}
 	if err := render.RenderList(w, r, a.newFloorListPayloadResponse(floors)); err != nil {
 		render.Render(w, r, ErrRender(err))
+		a.logger.Error.Print(err)
 	}
 }
 
@@ -23,6 +25,7 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 	f := &floorPayload{}
 	if err := render.Bind(r, f); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -30,12 +33,14 @@ func (a *Almue) createFloor(w http.ResponseWriter, r *http.Request) {
 	f.ID, err = a.store.CreateFloor(f.Floor)
 	if err != nil {
 		render.Render(w, r, ErrRender(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	floor, err := a.store.GetFloor(f.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -69,23 +74,27 @@ func (a *Almue) updateFloor(w http.ResponseWriter, r *http.Request) {
 	f := &floorPayload{Floor: floor}
 	if err := render.Bind(r, f); err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if f.Floor.ID != oldFloor.ID {
 		err := errors.New("Can not update the floor to a different id")
 		render.Render(w, r, ErrInvalidRequest(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	if err := a.store.UpdateFloor(f.Floor); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
 	updatedFloor, err := a.store.GetFloor(f.Floor.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
@@ -103,11 +112,13 @@ func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 	shutters, err := a.store.GetShutterListOfFloor(floor.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 	for _, shutter := range shutters {
 		if err := a.deviceController.UnregisterShutter(shutter.ID); err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			a.logger.Error.Print(err)
 			return
 		}
 	}
@@ -115,17 +126,20 @@ func (a *Almue) deleteFloor(w http.ResponseWriter, r *http.Request) {
 	lightings, err := a.store.GetLightingListOfFloor(floor.ID)
 	if err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 	for _, lighting := range lightings {
 		if err := a.deviceController.UnregisterLighting(lighting.ID); err != nil {
 			render.Render(w, r, ErrInternalServer(err))
+			a.logger.Error.Print(err)
 			return
 		}
 	}
 
 	if err := a.store.DeleteFloor(floor.ID); err != nil {
 		render.Render(w, r, ErrInternalServer(err))
+		a.logger.Error.Print(err)
 		return
 	}
 
