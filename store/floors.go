@@ -6,6 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
+// GetFloor returns the floor with the given id
 func (d *Datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	floor := &model.Floor{}
 	err := d.QueryRow(floorFindIDStmt,
@@ -16,6 +17,7 @@ func (d *Datastore) GetFloor(floorID int64) (*model.Floor, error) {
 	return floor, err
 }
 
+// GetFloorList returns all the floor in the database
 func (d *Datastore) GetFloorList() ([]*model.Floor, error) {
 	rows, err := d.Query(floorsFindAllStmt)
 
@@ -37,6 +39,7 @@ func (d *Datastore) GetFloorList() ([]*model.Floor, error) {
 	return floors, err
 }
 
+// CreateFloor creates a floor in the database and returns the generated id
 func (d *Datastore) CreateFloor(f *model.Floor) (int64, error) {
 	res, err := d.Exec(
 		floorCreateStmt,
@@ -51,6 +54,7 @@ func (d *Datastore) CreateFloor(f *model.Floor) (int64, error) {
 	return id, err
 }
 
+// DeleteFloor deletes a floor with the given id
 func (d *Datastore) DeleteFloor(floorID int64) error {
 	res, err := d.Exec(floorDeleteStmt, floorID)
 	if err != nil {
@@ -66,6 +70,7 @@ func (d *Datastore) DeleteFloor(floorID int64) error {
 	return err
 }
 
+// UpdateFloor updates an existing floor
 func (d *Datastore) UpdateFloor(f *model.Floor) error {
 	_, err :=
 		d.Exec(floorUpdateStmt, f.Description, f.ID)

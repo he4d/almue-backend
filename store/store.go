@@ -12,6 +12,7 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+// Datastore contains all necessary objects for store handling
 type Datastore struct {
 	*sql.DB
 	logger *simplejack.Logger
@@ -37,7 +38,7 @@ func setupDatabase(db *sql.DB) error {
 	return Migrate(db)
 }
 
-//TODO: Divide and Conquer
+// GetBackup creates a database backup and returns it as a byte array
 func (d *Datastore) GetBackup() ([]byte, error) {
 	var driverName = fmt.Sprintf("sqlite3_backup_%v", time.Now().UnixNano())
 	tmpFile, err := ioutil.TempFile("", "tmpDb")

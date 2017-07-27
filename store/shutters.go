@@ -6,6 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
+// GetShutter returns the shutter with the given id
 func (d *Datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	s := new(model.Shutter)
 
@@ -22,6 +23,7 @@ func (d *Datastore) GetShutter(shutterID int64) (*model.Shutter, error) {
 	return s, err
 }
 
+// GetShutterListOfFloor returns all shutters of the floor with the provided floorId
 func (d *Datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, error) {
 	rows, err := d.Query(shuttersOfFloorStmt, floorID)
 
@@ -49,6 +51,7 @@ func (d *Datastore) GetShutterListOfFloor(floorID int64) ([]*model.Shutter, erro
 	return shutters, err
 }
 
+// GetShutterList returns all shutters that exist in the store
 func (d *Datastore) GetShutterList() ([]*model.Shutter, error) {
 	rows, err := d.Query(shuttersFindAllStmt)
 
@@ -76,6 +79,7 @@ func (d *Datastore) GetShutterList() ([]*model.Shutter, error) {
 	return shutters, err
 }
 
+// CreateShutter creates a new shutter in the store and returns the generated id
 func (d *Datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	res, err := d.Exec(
 		shutterCreateStmt,
@@ -92,6 +96,7 @@ func (d *Datastore) CreateShutter(s *model.Shutter) (int64, error) {
 	return id, err
 }
 
+// DeleteShutter deletes a shutter from the store with the given id
 func (d *Datastore) DeleteShutter(shutterID int64) error {
 	res, err := d.Exec(shutterDeleteStmt, shutterID)
 	if err != nil {
@@ -107,6 +112,7 @@ func (d *Datastore) DeleteShutter(shutterID int64) error {
 	return err
 }
 
+// UpdateShutter updates a shutter in the store with the given model
 func (d *Datastore) UpdateShutter(s *model.Shutter) error {
 	_, err :=
 		d.Exec(
@@ -117,12 +123,14 @@ func (d *Datastore) UpdateShutter(s *model.Shutter) error {
 	return err
 }
 
+// UpdateShutterState updates the state of the shutter with the given id
 func (d *Datastore) UpdateShutterState(shutterID int64, newState string) error {
 	_, err :=
 		d.Exec(shutterStateUpdateStmt, newState, shutterID)
 	return err
 }
 
+// UpdateShutterOpening updates the current openingwidth of the shutter with the provided id
 func (d *Datastore) UpdateShutterOpening(shutterID int64, openingInPrc int) error {
 	_, err :=
 		d.Exec(shutterOpeningInPrcUpdateStmt, openingInPrc, shutterID)

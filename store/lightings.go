@@ -6,6 +6,7 @@ import (
 	"github.com/he4d/almue/model"
 )
 
+// GetLightingListOfFloor returns all lightings of a floor with the given floor id
 func (d *Datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsOfFloorStmt, floorID)
 
@@ -32,6 +33,7 @@ func (d *Datastore) GetLightingListOfFloor(floorID int64) ([]*model.Lighting, er
 	return lightings, err
 }
 
+// GetLightingList returns all lightings of the database
 func (d *Datastore) GetLightingList() ([]*model.Lighting, error) {
 	rows, err := d.Query(lightingsFindAllStmt)
 
@@ -58,6 +60,7 @@ func (d *Datastore) GetLightingList() ([]*model.Lighting, error) {
 	return lightings, err
 }
 
+// CreateLighting creates a new lighting in the database and returns the generated id
 func (d *Datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	res, err := d.Exec(
 		lightingCreateStmt,
@@ -75,6 +78,7 @@ func (d *Datastore) CreateLighting(l *model.Lighting) (int64, error) {
 	return id, err
 }
 
+// DeleteLighting deletes the lighting with the given id from the database
 func (d *Datastore) DeleteLighting(lightingID int64) error {
 	res, err := d.Exec(lightingDeleteStmt, lightingID)
 	if err != nil {
@@ -90,6 +94,7 @@ func (d *Datastore) DeleteLighting(lightingID int64) error {
 	return err
 }
 
+// UpdateLighting updates the lighting in the database according to the given model
 func (d *Datastore) UpdateLighting(l *model.Lighting) error {
 	_, err :=
 		d.Exec(
@@ -100,12 +105,14 @@ func (d *Datastore) UpdateLighting(l *model.Lighting) error {
 	return err
 }
 
+// UpdateLightingState updates the state of a lighting
 func (d *Datastore) UpdateLightingState(lightingID int64, newState string) error {
 	_, err :=
 		d.Exec(lightingStateUpdateStmt, newState, lightingID)
 	return err
 }
 
+// GetLighting returns the lighting with the provided id
 func (d *Datastore) GetLighting(lightingID int64) (*model.Lighting, error) {
 	l := new(model.Lighting)
 
