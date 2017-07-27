@@ -53,6 +53,7 @@ func (a *Almue) Serve(addr string) <-chan error {
 	return serveError
 }
 
+// Shutdown gracefully shuts down the server
 func (a *Almue) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
