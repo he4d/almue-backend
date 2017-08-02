@@ -5,17 +5,29 @@ package model
 type DifferenceType uint16
 
 const (
+	// DIFFNONE identifies no differnces
 	DIFFNONE DifferenceType = 1 << iota
+	// DIFFEMERGENCYENABLED identifies different emergency enabled status
 	DIFFEMERGENCYENABLED
+	// DIFFDISABLED identifies different device enabled status
 	DIFFDISABLED
+	// DIFFJOBSENABLED identifies different jobs enabled status
 	DIFFJOBSENABLED
+	// DIFFOPENPIN identifies different open pin numbers
 	DIFFOPENPIN
+	// DIFFCLOSEPIN identifies different close pin
 	DIFFCLOSEPIN
+	// DIFFCOMPLETEWAYINSECONDS identifies different numbers complete way in secs
 	DIFFCOMPLETEWAYINSECONDS
+	// DIFFOPENTIME identifies different open time
 	DIFFOPENTIME
+	// DIFFCLOSETIME identifies different close time
 	DIFFCLOSETIME
+	// DIFFSWITCHPIN identifies different switch pin
 	DIFFSWITCHPIN
+	// DIFFONTIME identifies different on time
 	DIFFONTIME
+	// DIFFOFFTIME identifies different off time
 	DIFFOFFTIME
 )
 
