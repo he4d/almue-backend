@@ -40,7 +40,7 @@ func New(store DeviceStore, deviceController DeviceController, logger *simplejac
 }
 
 // Serve must be called to start the Almue backend
-// if an error occured on calling ListenAndServe the returned
+// if an error occurred on calling ListenAndServe the returned
 // error chan will contain the error message
 func (a *Almue) Serve(addr string) <-chan error {
 	serveError := make(chan error)

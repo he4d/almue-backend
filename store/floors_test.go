@@ -61,7 +61,7 @@ func TestGetFloorList(t *testing.T) {
 		t.Errorf("Could not get the floor list %v", err)
 	}
 	if floors == nil {
-		t.Error("Floors is nil but no error occured before")
+		t.Error("Floors is nil but no error occurred before")
 	}
 	numOfFloors := len(floors)
 	if numOfFloors != amountOfFloors {

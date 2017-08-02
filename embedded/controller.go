@@ -8,7 +8,8 @@ import (
 	"github.com/he4d/simplejack"
 )
 
-type EmbeddedController struct {
+// Controller holds all necessary fields for the Controller
+type Controller struct {
 	shuttersLock  sync.RWMutex
 	shutters      map[int64]*shutter
 	lightingsLock sync.RWMutex
@@ -20,14 +21,14 @@ type EmbeddedController struct {
 
 //New creates a new DeviceController and returns it
 //if true is passed to the simulate argument it runs without gpio acces
-func New(logger *simplejack.Logger, stateStore DeviceStateStore, simulate bool) (*EmbeddedController, error) {
+func New(logger *simplejack.Logger, stateStore DeviceStateStore, simulate bool) (*Controller, error) {
 	if !simulate {
 		if _, err := host.Init(); err != nil {
 			return nil, err
 		}
 	}
 
-	controller := &EmbeddedController{
+	controller := &Controller{
 		shutters:   make(map[int64]*shutter),
 		lightings:  make(map[int64]*lighting),
 		simulate:   simulate,

@@ -18,7 +18,9 @@ type lighting struct {
 	offJob    *scheduler.Job
 }
 
-func (c *EmbeddedController) RegisterLightings(lightings ...*model.Lighting) error {
+// RegisterLightings registers one or more lightings to the controller
+// If a lighting has enabled jobs it will also start the scheduling for those
+func (c *Controller) RegisterLightings(lightings ...*model.Lighting) error {
 	for _, lightingModel := range lightings {
 		var switchPin gpio.PinIO
 		if c.simulate {
@@ -43,7 +45,9 @@ func (c *EmbeddedController) RegisterLightings(lightings ...*model.Lighting) err
 	return nil
 }
 
-func (c *EmbeddedController) UnregisterLighting(lightingID int64) error {
+// UnregisterLighting unregisters the lighting with the given id.
+// It will also unschedule the jobs of the lighting
+func (c *Controller) UnregisterLighting(lightingID int64) error {
 	if err := c.TurnLightingOff(lightingID); err != nil {
 		return err
 	}
@@ -57,7 +61,8 @@ func (c *EmbeddedController) UnregisterLighting(lightingID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+// UpdateLighting updates a Lighting according to the differences that get passed
+func (c *Controller) UpdateLighting(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
 	if diffs == model.DIFFNONE {
 		return nil
 	}
@@ -103,7 +108,8 @@ func (c *EmbeddedController) UpdateLighting(diffs model.DifferenceType, updatedL
 	return nil
 }
 
-func (c *EmbeddedController) TurnLightingOn(lightingID int64) error {
+// TurnLightingOn turns on the lighting with the given ID and updates the state store
+func (c *Controller) TurnLightingOn(lightingID int64) error {
 	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
@@ -119,7 +125,8 @@ func (c *EmbeddedController) TurnLightingOn(lightingID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) TurnLightingOff(lightingID int64) error {
+// TurnLightingOff turns off the lighting with the given ID and updates the state store
+func (c *Controller) TurnLightingOff(lightingID int64) error {
 	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
@@ -135,7 +142,8 @@ func (c *EmbeddedController) TurnLightingOff(lightingID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) error {
+// ScheduleLightingJobs schedules jobs of the given lighting
+func (c *Controller) ScheduleLightingJobs(lighting *model.Lighting) error {
 	device, err := c.getLightingByID(lighting.ID)
 	if err != nil {
 		return err
@@ -157,7 +165,8 @@ func (c *EmbeddedController) ScheduleLightingJobs(lighting *model.Lighting) erro
 	return nil
 }
 
-func (c *EmbeddedController) UnscheduleLightingJobs(lightingID int64) error {
+// UnscheduleLightingJobs unschedules jobs of the given lighting
+func (c *Controller) UnscheduleLightingJobs(lightingID int64) error {
 	device, err := c.getLightingByID(lightingID)
 	if err != nil {
 		return err
@@ -173,7 +182,7 @@ func (c *EmbeddedController) UnscheduleLightingJobs(lightingID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
+func (c *Controller) changeLightingPin(diffs model.DifferenceType, updatedLighting *model.Lighting) error {
 	c.TurnLightingOff(updatedLighting.ID)
 	lighting, err := c.getLightingByID(updatedLighting.ID)
 	if err != nil {
@@ -189,7 +198,7 @@ func (c *EmbeddedController) changeLightingPin(diffs model.DifferenceType, updat
 	return nil
 }
 
-func (c *EmbeddedController) rescheduleLightingJobs(lighting *model.Lighting) error {
+func (c *Controller) rescheduleLightingJobs(lighting *model.Lighting) error {
 	if err := c.UnscheduleLightingJobs(lighting.ID); err != nil {
 		return err
 	}
@@ -199,7 +208,7 @@ func (c *EmbeddedController) rescheduleLightingJobs(lighting *model.Lighting) er
 	return nil
 }
 
-func (c *EmbeddedController) getLightingByID(lightingID int64) (*lighting, error) {
+func (c *Controller) getLightingByID(lightingID int64) (*lighting, error) {
 	c.lightingsLock.RLock()
 	device, ok := c.lightings[lightingID]
 	c.lightingsLock.RUnlock()

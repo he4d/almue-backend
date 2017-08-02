@@ -24,13 +24,13 @@ type shutter struct {
 	openingInPrc        int
 }
 
-// getTickDurationMs calculates how many milliseconds it needs for 5% of moving the shutter up or down
-func (s shutter) getTickDuration() time.Duration {
+func (s *shutter) getTickDuration() time.Duration {
 	calc := (s.completeWayDuration.Seconds() * 5.0 / 100.0) * 1000.0
 	return time.Millisecond * time.Duration(calc)
 }
 
-func (c *EmbeddedController) RegisterShutters(shutters ...*model.Shutter) error {
+// RegisterShutters registers one or more shutters to the controller. It will also start the scheudle if enabled for the given shutter
+func (c *Controller) RegisterShutters(shutters ...*model.Shutter) error {
 	for _, shutterModel := range shutters {
 		var openPin gpio.PinIO
 		var closePin gpio.PinIO
@@ -62,7 +62,8 @@ func (c *EmbeddedController) RegisterShutters(shutters ...*model.Shutter) error 
 	return nil
 }
 
-func (c *EmbeddedController) UnregisterShutter(shutterID int64) error {
+// UnregisterShutter unregisters the shutter with the given id from the controller
+func (c *Controller) UnregisterShutter(shutterID int64) error {
 	if err := c.StopShutter(shutterID); err != nil {
 		return err
 	}
@@ -77,7 +78,8 @@ func (c *EmbeddedController) UnregisterShutter(shutterID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) UpdateShutter(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+// UpdateShutter updates a Shutter according to the differences that get passed
+func (c *Controller) UpdateShutter(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
 	if diffs == model.DIFFNONE {
 		return nil
 	}
@@ -131,7 +133,9 @@ func (c *EmbeddedController) UpdateShutter(diffs model.DifferenceType, updatedSh
 	return nil
 }
 
-func (c *EmbeddedController) OpenShutter(shutterID int64) error {
+// OpenShutter opens the shutter with the given id
+// It also updates the state store
+func (c *Controller) OpenShutter(shutterID int64) error {
 	device, err := c.getShutterByID(shutterID)
 	if err != nil {
 		return err
@@ -167,7 +171,7 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 		}
 		device.ticker = time.NewTicker(device.getTickDuration())
 		go func() {
-			for _ = range device.ticker.C {
+			for range device.ticker.C {
 				device.openingInPrc += 5
 				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
 					//TODO: Handle error
@@ -186,7 +190,9 @@ func (c *EmbeddedController) OpenShutter(shutterID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) CloseShutter(shutterID int64) error {
+// CloseShutter closes the shutter with the given id
+// It also updates the state store
+func (c *Controller) CloseShutter(shutterID int64) error {
 	device, err := c.getShutterByID(shutterID)
 	if err != nil {
 		return err
@@ -221,7 +227,7 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 		}
 		device.ticker = time.NewTicker(device.getTickDuration())
 		go func() {
-			for _ = range device.ticker.C {
+			for range device.ticker.C {
 				device.openingInPrc -= 5
 				if err := c.stateStore.UpdateShutterOpening(shutterID, device.openingInPrc); err != nil {
 					//TODO: Handle error
@@ -240,7 +246,9 @@ func (c *EmbeddedController) CloseShutter(shutterID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) StopShutter(shutterID int64) error {
+// StopShutter stops the shutter with the given id
+// It also updates the state store
+func (c *Controller) StopShutter(shutterID int64) error {
 	device, err := c.getShutterByID(shutterID)
 	if err != nil {
 		return err
@@ -265,7 +273,8 @@ func (c *EmbeddedController) StopShutter(shutterID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
+// ScheduleShutterJobs schedules jobs of the given shutter
+func (c *Controller) ScheduleShutterJobs(shutter *model.Shutter) error {
 	device, err := c.getShutterByID(shutter.ID)
 	if err != nil {
 		return err
@@ -287,7 +296,8 @@ func (c *EmbeddedController) ScheduleShutterJobs(shutter *model.Shutter) error {
 	return nil
 }
 
-func (c *EmbeddedController) UnscheduleShutterJobs(shutterID int64) error {
+// UnscheduleShutterJobs unschedules jobs of the given shutter
+func (c *Controller) UnscheduleShutterJobs(shutterID int64) error {
 	device, err := c.getShutterByID(shutterID)
 	if err != nil {
 		return err
@@ -303,7 +313,7 @@ func (c *EmbeddedController) UnscheduleShutterJobs(shutterID int64) error {
 	return nil
 }
 
-func (c *EmbeddedController) getShutterByID(shutterID int64) (*shutter, error) {
+func (c *Controller) getShutterByID(shutterID int64) (*shutter, error) {
 	c.shuttersLock.RLock()
 	device, ok := c.shutters[shutterID]
 	c.shuttersLock.RUnlock()
@@ -313,7 +323,7 @@ func (c *EmbeddedController) getShutterByID(shutterID int64) (*shutter, error) {
 	return device, nil
 }
 
-func (c *EmbeddedController) rescheduleShutterJobs(shutter *model.Shutter) error {
+func (c *Controller) rescheduleShutterJobs(shutter *model.Shutter) error {
 	if err := c.UnscheduleShutterJobs(shutter.ID); err != nil {
 		return err
 	}
@@ -323,7 +333,7 @@ func (c *EmbeddedController) rescheduleShutterJobs(shutter *model.Shutter) error
 	return nil
 }
 
-func (c *EmbeddedController) changeShutterPins(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
+func (c *Controller) changeShutterPins(diffs model.DifferenceType, updatedShutter *model.Shutter) error {
 	c.StopShutter(updatedShutter.ID)
 	shutter, err := c.getShutterByID(updatedShutter.ID)
 	if err != nil {

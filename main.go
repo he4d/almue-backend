@@ -77,7 +77,7 @@ func main() {
 	case httpError := <-serveError:
 		logger.Error.Printf("http server error: %v", httpError)
 	case <-stopChan:
-		logger.Info.Println("sigint ocurred.. shutting down almue..")
+		logger.Info.Println("sigint occurred.. shutting down almue..")
 		almue.Shutdown()
 	}
 }
