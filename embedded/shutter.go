@@ -2,6 +2,7 @@ package embedded
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"sync"
@@ -38,8 +39,8 @@ func (c *Controller) RegisterShutters(shutters ...*model.Shutter) error {
 			openPin = &simulatePinIO{name: *shutterModel.Description, number: *shutterModel.OpenPin}
 			closePin = &simulatePinIO{name: *shutterModel.Description, number: *shutterModel.ClosePin}
 		} else {
-			openPin = gpioreg.ByNumber(*shutterModel.OpenPin)
-			closePin = gpioreg.ByNumber(*shutterModel.ClosePin)
+			openPin = gpioreg.ByName(strconv.Itoa(*shutterModel.OpenPin))
+			closePin = gpioreg.ByName(strconv.Itoa(*shutterModel.ClosePin))
 		}
 		duration := time.Duration(*shutterModel.CompleteWayInSeconds) * time.Second
 		shutterToAdd := &shutter{
@@ -345,7 +346,7 @@ func (c *Controller) changeShutterPins(diffs model.DifferenceType, updatedShutte
 		if c.simulate {
 			shutter.openPin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.OpenPin}
 		} else {
-			shutter.openPin = gpioreg.ByNumber(*updatedShutter.OpenPin)
+			shutter.openPin = gpioreg.ByName(strconv.Itoa(*updatedShutter.OpenPin))
 		}
 	}
 	if diffs.HasFlag(model.DIFFOPENPIN) {
@@ -355,7 +356,7 @@ func (c *Controller) changeShutterPins(diffs model.DifferenceType, updatedShutte
 		if c.simulate {
 			shutter.closePin = &simulatePinIO{name: *updatedShutter.Description, number: *updatedShutter.ClosePin}
 		} else {
-			shutter.closePin = gpioreg.ByNumber(*updatedShutter.ClosePin)
+			shutter.closePin = gpioreg.ByName(strconv.Itoa(*updatedShutter.ClosePin))
 		}
 	}
 	return nil

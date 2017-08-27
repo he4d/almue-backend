@@ -2,6 +2,7 @@ package embedded
 
 import (
 	"fmt"
+	"strconv"
 
 	"sync"
 
@@ -26,7 +27,7 @@ func (c *Controller) RegisterLightings(lightings ...*model.Lighting) error {
 		if c.simulate {
 			switchPin = &simulatePinIO{name: *lightingModel.Description, number: *lightingModel.SwitchPin}
 		} else {
-			switchPin = gpioreg.ByNumber(*lightingModel.SwitchPin)
+			switchPin = gpioreg.ByName(strconv.Itoa(*lightingModel.SwitchPin))
 		}
 		lightingToAdd := &lighting{
 			switchPin: switchPin,
@@ -192,7 +193,7 @@ func (c *Controller) changeLightingPin(diffs model.DifferenceType, updatedLighti
 	if c.simulate {
 		lighting.switchPin = &simulatePinIO{name: *updatedLighting.Description, number: *updatedLighting.SwitchPin}
 	} else {
-		lighting.switchPin = gpioreg.ByNumber(*updatedLighting.SwitchPin)
+		lighting.switchPin = gpioreg.ByName(strconv.Itoa(*updatedLighting.SwitchPin))
 	}
 	lighting.Unlock()
 	return nil
