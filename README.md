@@ -1,4 +1,4 @@
-Almue - a homeautomation solution for the IoT [![Go Report Card](https://goreportcard.com/badge/github.com/he4d/almue)](https://goreportcard.com/report/github.com/he4d/almue)
+Almue - a homeautomation solution for the IoT [![Go Report Card](https://goreportcard.com/badge/github.com/he4d/almue-backend)](https://goreportcard.com/report/github.com/he4d/almue-backend)
 ============================================================
 
 The frontend for this can be found [here](https://github.com/he4d/almue-frontend)
