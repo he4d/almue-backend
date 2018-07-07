@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/he4d/almue/almue"
-	"github.com/he4d/almue/embedded"
-	"github.com/he4d/almue/store"
+	"github.com/he4d/almue-backend/almue"
+	"github.com/he4d/almue-backend/embedded"
+	"github.com/he4d/almue-backend/store"
 	"github.com/he4d/simplejack"
 	_ "github.com/mattn/go-sqlite3"
 )
