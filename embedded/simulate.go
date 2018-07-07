@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"periph.io/x/periph/conn/gpio"
+	"periph.io/x/periph/conn/physic"
 )
 
 type simulatePinIO struct {
@@ -48,6 +49,21 @@ func (s *simulatePinIO) WaitForEdge(timeout time.Duration) bool {
 func (s *simulatePinIO) Pull() gpio.Pull {
 	//TODO:
 	return 2
+}
+
+func (s *simulatePinIO) DefaultPull() gpio.Pull {
+	//TODO:
+	return 2
+}
+
+func (s *simulatePinIO) Halt() error {
+	//TODO:
+	return nil
+}
+
+func (s *simulatePinIO) PWM(gpio.Duty, physic.Frequency) error {
+	//TODO:
+	return nil
 }
 
 func (s *simulatePinIO) Out(l gpio.Level) error {
