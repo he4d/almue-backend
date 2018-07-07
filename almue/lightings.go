@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/he4d/almue/model"
+	"github.com/he4d/almue-backend/model"
 )
 
 func (a *Almue) getAllLightingsOfFloor(w http.ResponseWriter, r *http.Request) {

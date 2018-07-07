@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 
-	"github.com/he4d/almue/model"
+	"github.com/he4d/almue-backend/model"
 )
 
 // GetLightingListOfFloor returns all lightings of a floor with the given floor id

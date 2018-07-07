@@ -1,6 +1,6 @@
 package almue
 
-import "github.com/he4d/almue/model"
+import "github.com/he4d/almue-backend/model"
 
 // DeviceStore must be implemented by the device data store
 type DeviceStore interface {

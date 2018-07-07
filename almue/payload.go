@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/he4d/almue/model"
+	"github.com/he4d/almue-backend/model"
 )
 
 //-- FLOOR PAYLOAD --//

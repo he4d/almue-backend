@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 
-	"github.com/he4d/almue/model"
+	"github.com/he4d/almue-backend/model"
 )
 
 // GetFloor returns the floor with the given id
